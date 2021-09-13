@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D57F3061-D07B-4A98-BBD8-DCDE4995E388}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>com.github.TheCSUser.Shared</RootNamespace>
+    <AssemblyName>Shared</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Dev|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Dev\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;DEV</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Preview|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Preview\</OutputPath>
+    <DefineConstants>PREVIEW</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities_Data\Managed\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="CitiesHarmony.API, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\CitiesHarmony.API.2.0.0\lib\net35\CitiesHarmony.API.dll</HintPath>
+    </Reference>
+    <Reference Include="CitiesHarmony.Harmony, Version=2.0.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\CitiesHarmony.Harmony.2.0.4\lib\net35\CitiesHarmony.Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="ColossalManaged">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities_Data\Managed\ColossalManaged.dll</HintPath>
+    </Reference>
+    <Reference Include="ICities">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities_Data\Managed\ICities.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Common\ApplicationMode.cs" />
+    <Compile Include="Common\Base\LifecycleManagerBase.cs" />
+    <Compile Include="Common\ILifecycleManaged.cs" />
+    <Compile Include="Common\SlidingDelayAction.cs" />
+    <Compile Include="Containers\IInitializableContainer.cs" />
+    <Compile Include="Containers\IScriptContainer.cs" />
+    <Compile Include="EntryPoints\LevelEntryPoint.cs" />
+    <Compile Include="EntryPoints\MainMenuEntryPoint.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\LibProperties.cs" />
+    <Compile Include="Common\Cached.cs" />
+    <Compile Include="Common\DisposableExtensions.cs" />
+    <Compile Include="Common\FastReflection.cs" />
+    <Compile Include="Common\Hash.cs" />
+    <Compile Include="Common\IAvailabilityInfo.cs" />
+    <Compile Include="Common\IDisposableEx.cs" />
+    <Compile Include="Common\IErrorInfo.cs" />
+    <Compile Include="Common\IToggleable.cs" />
+    <Compile Include="Common\IUpdatable.cs" />
+    <Compile Include="Common\Patcher.cs" />
+    <Compile Include="Containers\DisposableContainer.cs" />
+    <Compile Include="Containers\IDisposableContainer.cs" />
+    <Compile Include="Containers\InitializableContainer.cs" />
+    <Compile Include="Imports\Lazy.cs" />
+    <Compile Include="Imports\ObjectDumper.cs" />
+    <Compile Include="Logging\ILogger.cs" />
+    <Compile Include="Logging\Log.cs" />
+    <Compile Include="Logging\SyncFileLogger.cs" />
+    <Compile Include="Logging\UnityDebugLogger.cs" />
+    <Compile Include="Common\Base\ScriptBase.cs" />
+    <Compile Include="UserInterface\Components\Base\Component .cs" />
+    <Compile Include="UserInterface\Components\Base\TextComponent.cs" />
+    <Compile Include="UserInterface\Components\ButtonComponent.cs" />
+    <Compile Include="UserInterface\Components\CheckboxComponent.cs" />
+    <Compile Include="UserInterface\Components\DropDownComponent.cs" />
+    <Compile Include="UserInterface\Components\GroupComponent.cs" />
+    <Compile Include="UserInterface\Components\IComponent.cs" />
+    <Compile Include="UserInterface\Components\ISpace.cs" />
+    <Compile Include="UserInterface\Components\LabelComponent.cs" />
+    <Compile Include="UserInterface\Components\SliderComponent.cs" />
+    <Compile Include="UserInterface\Components\SpaceComponent.cs" />
+    <Compile Include="UserInterface\Components\TextFieldComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LButtonComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LCheckBoxComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LDropDownComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LGroupComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LLabelComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LSliderComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\LocalizationStyles.cs" />
+    <Compile Include="UserInterface\Localization\Components\LTextFieldComponent.cs" />
+    <Compile Include="UserInterface\Localization\LocaleConstants.cs" />
+    <Compile Include="UserInterface\Localization\LocaleExtensions.cs" />
+    <Compile Include="UserInterface\Localization\LocaleLibrary.cs" />
+    <Compile Include="UserInterface\Localization\LocaleManager.cs" />
+    <Compile Include="UserInterface\Localization\LocalizedUIBuilder.cs" />
+    <Compile Include="UserInterface\Localization\Serialization\LocaleFile.cs" />
+    <Compile Include="UserInterface\Localization\Serialization\LocaleReader.cs" />
+    <Compile Include="UserInterface\Localization\Serialization\SerializedPhrase.cs" />
+    <Compile Include="UserInterface\UIBuilder.cs" />
+    <Compile Include="Common\Counter.cs" />
+    <Compile Include="Common\IInitializable.cs" />
+    <Compile Include="Imports\StringEnum.cs" />
+    <Compile Include="UserInterface\Localization\LocaleText.cs" />
+    <Compile Include="Common\Base\ModBase.cs" />
+    <Compile Include="Settings\ISettingsReaderWriter.cs" />
+    <Compile Include="Settings\SettingsFile.cs" />
+    <Compile Include="Settings\SettingsReaderWriter.cs" />
+    <Compile Include="UserInterface\BuilderSelection.cs" />
+    <Compile Include="UserInterface\Components\IButton.cs" />
+    <Compile Include="UserInterface\Components\ICheckbox.cs" />
+    <Compile Include="UserInterface\Components\IDropDown.cs" />
+    <Compile Include="UserInterface\Components\IGroup.cs" />
+    <Compile Include="UserInterface\Components\ILabel.cs" />
+    <Compile Include="UserInterface\Components\ISlider.cs" />
+    <Compile Include="UserInterface\Components\ITextComponent.cs" />
+    <Compile Include="UserInterface\Components\ITextField.cs" />
+    <Compile Include="UserInterface\IUIBuilder.cs" />
+    <Compile Include="UserInterface\Localization\Components\ILocalizedComponent.cs" />
+    <Compile Include="UserInterface\Localization\Components\ILocalizedGroup.cs" />
+    <Compile Include="UserInterface\Localization\ILocalizedUIBuilder.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>
