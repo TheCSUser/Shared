@@ -5,7 +5,12 @@ namespace com.github.TheCSUser.Shared.Logging
 {
     internal sealed class UnityDebugLogger : ILogger
     {
-        public static string LoggerName { get; set; } = string.Empty;
+        public string LoggerName { get; }
+
+        public UnityDebugLogger(string name)
+        {
+            LoggerName = name ?? string.Empty;
+        }
 
         public void Info(string text)
         {

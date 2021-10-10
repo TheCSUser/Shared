@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
@@ -17,22 +18,22 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             set
             {
                 _text = value;
-                base.Text = value?.Translate() ?? string.Empty;
+                base.Text = value is null ? "" : LocaleManager.Current.Translate(value.Phrase, value.Values);
             }
         }
 
-        protected LLabelComponent(UILabel label) : base(label)
+        protected LLabelComponent(IModContext context, UILabel label) : base(context, label)
         {
             Styles.Add(LocalizedComponent(this));
         }
 
-        public static new LLabelComponent Create(UIComponent root)
+        public static new LLabelComponent Create(IModContext context, UIComponent root)
         {
             var label = root.AddUIComponent<UILabel>();
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new LLabelComponent(label);
+            return new LLabelComponent(context, label);
         }
     }
 }

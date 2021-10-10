@@ -1,70 +1,30 @@
-﻿using com.github.TheCSUser.Shared.Common.Base;
-using com.github.TheCSUser.Shared.Imports;
-using com.github.TheCSUser.Shared.Logging;
+﻿using com.github.TheCSUser.Shared.Logging;
+using com.github.TheCSUser.Shared.Properties;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 using static CitiesHarmony.API.HarmonyHelper;
 
 namespace com.github.TheCSUser.Shared.Common
 {
-    public sealed class PatchData
+    public sealed class Patcher : IPatcher, IManagedLifecycle
     {
-        public readonly string PatchId;
-        public readonly Lazy<MethodInfo> Target;
-        public readonly Lazy<MethodInfo> Prefix;
-        public readonly Lazy<MethodInfo> Postfix;
-        public readonly Lazy<MethodInfo> Transpiler;
-        public readonly Lazy<MethodInfo> Finalizer;
+        public static IPatcher None = new DummyPatcher();
+        internal static IPatcher Shared = new Patcher(LibProperties.SharedContext, LibProperties.HarmonyId);
 
-        public readonly Action OnUnpatch;
-        public readonly Action OnPatch;
+        private readonly Dictionary<string, int> Patches = new Dictionary<string, int>();
 
-        public bool IsPatchApplied { get; set; }
+        public string HarmonyId { get; }
 
-        public PatchData(
-            string patchId,
-            Func<MethodInfo> target,
-            Func<MethodInfo> prefix = null,
-            Func<MethodInfo> postfix = null,
-            Func<MethodInfo> transpiler = null,
-            Func<MethodInfo> finalizer = null,
-            Action onPatch = null,
-            Action onUnpatch = null)
+        internal Patcher(IModContext context, string harmonyId)
         {
-            PatchId = string.IsNullOrEmpty(patchId.Trim()) ? Guid.NewGuid().ToString() : patchId.Trim();
-            Target = target is null ? null : new Lazy<MethodInfo>(target);
-            Prefix = prefix is null ? null : new Lazy<MethodInfo>(prefix);
-            Postfix = postfix is null ? null : new Lazy<MethodInfo>(postfix);
-            Transpiler = transpiler is null ? null : new Lazy<MethodInfo>(transpiler);
-            Finalizer = finalizer is null ? null : new Lazy<MethodInfo>(finalizer);
-            OnPatch = onPatch;
-            OnUnpatch = onUnpatch;
-        }
-    }
-
-    public static class Patcher
-    {
-        private static readonly Dictionary<string, int> Patches = new Dictionary<string, int>();
-        private static string _harmonyId;
-        public static string HarmonyId
-        {
-            get => _harmonyId;
-            set
-            {
-                if (GetLifecycleManager().IsInitialized) throw new InvalidOperationException($"Setting {nameof(HarmonyId)} is possible only when {nameof(Patcher)} is not initialized");
-                _harmonyId = value;
-            }
+            _context = context;
+            HarmonyId = harmonyId;
+            _lifecycleManager = new PatcherLifecycleManager(context, this);
         }
 
-        private static bool IsPatched(string patchId)
-        {
-            if (Patches.TryGetValue(patchId, out int value)) return value > 0;
-            return false;
-        }
+        private bool IsPatched(string patchId) => Patches.TryGetValue(patchId, out int value) && value > 0;
 
-        public static void Patch(PatchData patch)
+        public void Patch(PatchData patch)
         {
             if (patch is null)
             {
@@ -142,7 +102,7 @@ namespace com.github.TheCSUser.Shared.Common
             });
         }
 
-        public static void Unpatch(PatchData patch, bool force = false)
+        public void Unpatch(PatchData patch, bool force = false)
         {
             if (patch is null)
             {
@@ -208,38 +168,69 @@ namespace com.github.TheCSUser.Shared.Common
             });
         }
 
-        #region Lifecycle
-        private static readonly Lazy<IInitializable> _lifecycleManager = new Lazy<IInitializable>(() => new LifecycleManager());
-
-        public static IInitializable GetLifecycleManager() => _lifecycleManager.Value;
-
-        private class LifecycleManager : LifecycleManagerBase
+        public void UnpatchAll()
         {
+#if DEV
+            Log.Info($"{nameof(Patcher)}.{nameof(UnpatchAll)} unpatching");
+#endif
+            DoOnHarmonyReady(() =>
+            {
+                try
+                {
+#if DEV
+                    Log.Info($"{nameof(Patcher)}.{nameof(UnpatchAll)} Harmony ready, removing patches.");
+#endif
+                    var harmony = new Harmony(HarmonyId);
+                    harmony.UnpatchAll(HarmonyId);
+                    Patches.Clear();
+                }
+                catch
+                {
+                    Log.Error($"{nameof(Patcher)}.{nameof(UnpatchAll)} DoOnHarmonyReady failed");
+                    throw;
+                }
+            });
+        }
+
+        #region Context
+        private readonly IModContext _context;
+
+        private IMod Mod => _context.Mod;
+        private ILogger Log => _context.Log;
+        #endregion
+
+        #region Lifecycle
+        private readonly IInitializable _lifecycleManager;
+        public IInitializable GetLifecycleManager() => _lifecycleManager;
+
+        private sealed class PatcherLifecycleManager : LifecycleManagerBase
+        {
+            private readonly Patcher _patcher;
+
+            public PatcherLifecycleManager(IModContext context, Patcher patcher) : base(context)
+            {
+                _patcher = patcher;
+            }
+
             protected override bool OnInitialize() => true;
             protected override bool OnTerminate()
             {
-#if DEV
-                Log.Info($"{nameof(Patcher)}.{nameof(LifecycleManager)}.{nameof(Terminate)} unpatching");
-#endif
-                DoOnHarmonyReady(() =>
-                {
-                    try
-                    {
-#if DEV
-                        Log.Info($"{nameof(Patcher)}.{nameof(Unpatch)} Harmony ready, removing patches.");
-#endif
-                        var harmony = new Harmony(HarmonyId);
-                        harmony.UnpatchAll(HarmonyId);
-                        Patches.Clear();
-                    }
-                    catch
-                    {
-                        Log.Error($"{nameof(Patcher)}.{nameof(Unpatch)} DoOnHarmonyReady failed");
-                        throw;
-                    }
-                });
+                _patcher.UnpatchAll();
                 return true;
             }
+        }
+        #endregion
+
+        #region DummyPatcher
+        private sealed class DummyPatcher : IPatcher
+        {
+            public string HarmonyId => LibProperties.HarmonyId;
+
+            public IInitializable GetLifecycleManager() => LifecycleManager.None;
+
+            public void Patch(PatchData patch) { }
+            public void Unpatch(PatchData patch, bool force = false) { }
+            public void UnpatchAll() { }
         }
         #endregion
     }

@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
@@ -17,23 +18,23 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             set
             {
                 _text = value;
-                base.Text = value?.Translate() ?? string.Empty;
+                base.Text = value is null ? "" : LocaleManager.Current.Translate(value.Phrase, value.Values);
             }
         }
 
-        protected LCheckBoxComponent(UILabel label, UICheckBox checkBox) : base(label, checkBox)
+        protected LCheckBoxComponent(IModContext context, UILabel label, UICheckBox checkBox) : base(context, label, checkBox)
         {
             Styles.Add(LocalizedComponent(this));
         }
 
-        public static new LCheckBoxComponent Create(UIComponent root)
+        public static new LCheckBoxComponent Create(IModContext context, UIComponent root)
         {
             var checkBox = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UICheckBox;
             var label = checkBox.label;
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new LCheckBoxComponent(label, checkBox);
+            return new LCheckBoxComponent(context, label, checkBox);
         }
     }
 }

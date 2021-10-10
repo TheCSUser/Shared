@@ -1,4 +1,5 @@
 ﻿using com.github.TheCSUser.Shared.Logging;
+using com.github.TheCSUser.Shared.Properties;
 using System;
 using System.Threading;
 
@@ -49,7 +50,11 @@ namespace com.github.TheCSUser.Shared.Common
                     }
                     catch (Exception e)
                     {
-                        Log.Error($"{GetType().Name}.{nameof(Timer)}.callback failed", e);
+#if DEV
+                        LibProperties.SharedContext.Log.Error($"{GetType().Name}.{nameof(Timer)}.callback failed", e);
+#else
+                        //ignore
+#endif
                     }
                 }, null, 0, Resolution);
             }

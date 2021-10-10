@@ -1,4 +1,5 @@
-﻿using com.github.TheCSUser.Shared.Imports;
+﻿using com.github.TheCSUser.Shared.Common;
+using com.github.TheCSUser.Shared.Imports;
 using com.github.TheCSUser.Shared.Logging;
 using System;
 using System.ComponentModel;
@@ -24,8 +25,9 @@ namespace com.github.TheCSUser.Shared.Settings
             Namespaces = noNamespaces;
         }
 
-        public SettingsReaderWriter(Func<string> pathResolver)
+        public SettingsReaderWriter(IModContext context, Func<string> pathResolver)
         {
+            _context = context;
             _fileName = new Lazy<string>(pathResolver);
         }
 
@@ -106,5 +108,11 @@ namespace com.github.TheCSUser.Shared.Settings
         INotifyPropertyChanged ISettingsReader.Load() => Load();
 
         void ISettingsWriter.Save(INotifyPropertyChanged data) => Save(data as TSettingsDto);
+
+        #region Context
+        private readonly IModContext _context;
+
+        private ILogger Log => _context.Log;
+        #endregion
     }
 }

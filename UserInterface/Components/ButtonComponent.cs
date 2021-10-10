@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Logging;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 using System;
@@ -15,7 +16,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
 
         public bool IsEnabled { get => Button.isEnabled; set => Button.isEnabled = value; }
 
-        protected ButtonComponent(UIButton button) : base(button)
+        protected ButtonComponent(IModContext context, UIButton button) : base(context, button)
         {
             button.eventClick += ButtonClickHandler;
             Button = button;
@@ -35,12 +36,12 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             }
         }
 
-        public static ButtonComponent Create(UIComponent root)
+        public static ButtonComponent Create(IModContext context, UIComponent root)
         {
             var button = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UIButton;
             button.autoSize = true;
             button.wordWrap = false;
-            return new ButtonComponent(button);
+            return new ButtonComponent(context, button);
         }
 
         #region IDisposable

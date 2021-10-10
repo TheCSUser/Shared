@@ -1,5 +1,4 @@
-﻿using com.github.TheCSUser.Shared.Logging;
-using System;
+﻿using System;
 using com.github.TheCSUser.Shared.Common;
 using UnityEngine;
 using ColossalFramework.UI;
@@ -27,7 +26,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components.Base
         private event Action<ITextComponent, string> _onTextChanged;
         public event Action<ITextComponent, string> OnTextChanged { add => _onTextChanged += value; remove => _onTextChanged -= value; }
 
-        public TextComponent(UITextComponent component) : base()
+        protected TextComponent(IModContext context, UITextComponent component) : base(context)
         {
             _component = component;
         }

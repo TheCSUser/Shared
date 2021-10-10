@@ -11,22 +11,29 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
-namespace com.github.TheCSUser.Shared.Common.Base
+namespace com.github.TheCSUser.Shared.Common
 {
-    using LanguageDictionary = Dictionary<string, string>;
-    using Library = Dictionary<string, Dictionary<string, string>>;
+    using Library = Dictionary<string, ILanguageDictionary>;
 
-    public abstract class ModBase : IUserMod
+    public abstract class ModBase : IMod
     {
-        public static event Action<object, string> SettingsChanged;
-        public static event Action<object> Initialized;
-        public static event Action<object> Terminating;
+        public event Action<object, string> SettingsChanged;
+        public event Action<object> Initialized;
+        public event Action<object> Terminating;
 
         private DisposableContainer _uiDisposables;
-        private readonly InitializableContainer _initializables = new InitializableContainer();
+        private readonly InitializableContainer _initializables;
 
         public abstract string Name { get; }
         public abstract string Description { get; }
+
+        public ModBase()
+        {
+            _context = new ModContext(this);
+            _initializables = new InitializableContainer(_context);
+            _localeReader = new LocaleReader(_context);
+            _entryPoints = new Dictionary<ApplicationMode, IScriptContainer>();
+        }
 
         public void OnEnabled()
         {
@@ -93,11 +100,11 @@ namespace com.github.TheCSUser.Shared.Common.Base
 
                 if (helper is UIHelper concreteHelper)
                 {
-                    _uiDisposables = new DisposableContainer();
+                    _uiDisposables = new DisposableContainer(_context);
                     BuildSettingsUI(
-                        LocaleManager.GetLifecycleManager().IsInitialized
-                        ? new BuilderSelection(new LocalizedUIBuilder(concreteHelper, _uiDisposables))
-                        : new BuilderSelection(new UIBuilder(concreteHelper, _uiDisposables))
+                        _useLocalization
+                        ? new BuilderSelection(new LocalizedUIBuilder(_context, concreteHelper, _uiDisposables))
+                        : new BuilderSelection(new UIBuilder(_context, concreteHelper, _uiDisposables))
                         );
                 }
                 else
@@ -113,9 +120,22 @@ namespace com.github.TheCSUser.Shared.Common.Base
 
         protected abstract void BuildSettingsUI(BuilderSelection builder);
 
+        #region Context
+        private readonly ModContext _context;
+        public IModContext Context => _context;
+        protected IPatcher Patcher => Context.Patcher;
+        protected ILogger Log => Context.Log;
+        protected ILocaleLibrary LocaleLibrary => Context.LocaleLibrary;
+        protected ILocaleManager LocaleManager => Context.LocaleManager;
+        #endregion
+
         #region Use
         protected void Use(IInitializable obj) => _initializables.Add(obj);
-        protected void Use(IManagedLifecycle obj) => _initializables.Add(obj.GetLifecycleManager());
+        protected T Use<T>(T obj) where T : IManagedLifecycle
+        {
+            _initializables.Add(obj.GetLifecycleManager());
+            return obj;
+        }
         protected void Use(Action onInitialize) => _initializables.Add(onInitialize);
         protected void Use(Action onInitialize, Action onTerminate) => _initializables.Add(onInitialize, onTerminate);
         #endregion
@@ -124,8 +144,7 @@ namespace com.github.TheCSUser.Shared.Common.Base
         protected void UseLogger(string path) => UseLogger(path, GetType().Assembly.GetName().Name);
         protected void UseLogger(string path, string name)
         {
-            UnityDebugLogger.LoggerName = name;
-            SyncFileLogger.Path = path;
+            _context.Log = new Log(path, name);
         }
         #endregion
 
@@ -135,30 +154,23 @@ namespace com.github.TheCSUser.Shared.Common.Base
             var assemblyName = GetType().Assembly.GetName();
             UseHarmony($"{assemblyName.Name} {assemblyName.Version} {Guid.NewGuid()}");
         }
-        protected void UseHarmony(string harmonyId)
-        {
-            Patcher.HarmonyId = harmonyId;
-            _initializables.Add(Patcher.GetLifecycleManager());
-        }
+        protected void UseHarmony(string harmonyId) => _context.Patcher = Use(new Patcher(_context, harmonyId));
         #endregion
 
         #region UseLocalization
-        protected void UseLocalization(string localeFilesPath, Func<LanguageDictionary> initDefaultLanguage = null) => UseLocalization(() => LocaleReader.Load(localeFilesPath), initDefaultLanguage);
-        protected void UseLocalization(Func<Library> initLibrary, Func<LanguageDictionary> initDefaultLanguage = null)
+        private readonly LocaleReader _localeReader;
+        private bool _useLocalization = false;
+        protected void UseLocalization(string localeFilesPath, Func<ILanguageDictionary> initDefaultLanguage = null) => UseLocalization(() => _localeReader.Load(localeFilesPath), initDefaultLanguage);
+        protected void UseLocalization(Func<Library> initLibrary, Func<ILanguageDictionary> initDefaultLanguage = null)
         {
-            _initializables.Add(
-                () =>
-                {
-                    LocaleLibrary.AvailableLanguages = initLibrary();
-                    LocaleLibrary.DefaultLanguage = initDefaultLanguage is null ? new LanguageDictionary() : initDefaultLanguage();
-                }
-            );
-            _initializables.Add(LocaleManager.GetLifecycleManager());
+            _context.LocaleLibrary = Use(new LocaleLibrary(_context, initLibrary, initDefaultLanguage));
+            _context.LocaleManager = Use(new LocaleManager(_context));
+            _useLocalization = true;
         }
         #endregion
 
         #region UseMode
-        private readonly Dictionary<ApplicationMode, IScriptContainer> _entryPoints = new Dictionary<ApplicationMode, IScriptContainer>();
+        private readonly Dictionary<ApplicationMode, IScriptContainer> _entryPoints;
         protected IScriptContainer UseMode(ApplicationMode mode)
         {
             switch (mode)
@@ -167,7 +179,7 @@ namespace com.github.TheCSUser.Shared.Common.Base
                     {
                         if (!_entryPoints.TryGetValue(mode, out var entryPoint))
                         {
-                            var mainMenuEntryPoint = new MainMenuEntryPoint();
+                            var mainMenuEntryPoint = new MainMenuEntryPoint(_context);
                             Use(mainMenuEntryPoint);
                             _entryPoints.Add(mode, mainMenuEntryPoint);
                             return mainMenuEntryPoint;
@@ -182,7 +194,7 @@ namespace com.github.TheCSUser.Shared.Common.Base
                     {
                         if (!_entryPoints.TryGetValue(mode, out var entryPoint))
                         {
-                            var levelEntryPoint = new LevelEntryPoint(mode);
+                            var levelEntryPoint = new LevelEntryPoint(_context, mode);
                             Use(levelEntryPoint);
                             _entryPoints.Add(mode, levelEntryPoint);
                             return levelEntryPoint;

@@ -1,11 +1,13 @@
-﻿using com.github.TheCSUser.Shared.Logging;
+﻿using com.github.TheCSUser.Shared.UserInterface.Localization;
 using System;
 using System.Threading;
 using UnityEngine;
 
-namespace com.github.TheCSUser.Shared.Common.Base
+namespace com.github.TheCSUser.Shared.Common
 {
-    public abstract class ScriptBase : IToggleable<bool>, IUpdatable<bool>, IErrorInfo, IDisposableEx, IManagedLifecycle
+    using ILogger = Logging.ILogger;
+
+    public abstract class ScriptBase : IToggleable<bool>, IUpdatable<bool>, IErrorInfo, IDisposableEx, IManagedLifecycle, IWithContext
     {
         protected abstract string Name { get; }
 
@@ -13,7 +15,24 @@ namespace com.github.TheCSUser.Shared.Common.Base
         protected abstract bool OnDisable();
         protected abstract bool OnUpdate();
 
-        public virtual IInitializable GetLifecycleManager() => LifecycleManager.Empty;
+        public ScriptBase(IModContext context)
+        {
+            _context = context;
+        }
+
+        public virtual IInitializable GetLifecycleManager() => LifecycleManager.None;
+
+        #region Context
+        private readonly IModContext _context;
+
+        protected IMod Mod => _context.Mod;
+        protected IPatcher Patcher => _context.Patcher;
+        protected ILogger Log => _context.Log;
+        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
+        protected ILocaleManager LocaleManager => _context.LocaleManager;
+
+        IModContext IWithContext.Context => _context;
+        #endregion
 
         #region Error
 #if DEV || PREVIEW
@@ -98,6 +117,11 @@ namespace com.github.TheCSUser.Shared.Common.Base
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        ~ScriptBase()
+        {
+            Dispose(disposing: false);
         }
         #endregion
 
@@ -187,10 +211,11 @@ namespace com.github.TheCSUser.Shared.Common.Base
 #if DEV
             Log.Info($"{GetType().Name}.{nameof(CreateUpdater)} called");
 #endif
-            var name = string.IsNullOrEmpty(Name) ? $"{GetType().Name}.{nameof(Updater)}" : Name;
+            var name = string.IsNullOrEmpty(Name) ? $"{GetType().Name}.{nameof(ScriptUpdater)}" : Name;
             var parent = new GameObject(name);
-            var updater = parent.AddComponent<Updater>();
+            var updater = parent.AddComponent<ScriptUpdater>();
             updater._parent = this;
+            updater._context = _context;
         }
 
         protected virtual void DestroyUpdater()
@@ -203,9 +228,15 @@ namespace com.github.TheCSUser.Shared.Common.Base
             if (!(toDestroy is null)) UnityEngine.Object.Destroy(toDestroy);
         }
 
-        internal class Updater : MonoBehaviour
+        internal class ScriptUpdater : MonoBehaviour
         {
             internal ScriptBase _parent;
+
+            #region Context
+            protected internal IModContext _context;
+
+            protected ILogger Log => _context?.Log ?? Logging.Log.None;
+            #endregion
 
             public bool IsEnabled => !(_parent is null || _parent.UpdaterParent is null);
 

@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Logging;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 using System;
@@ -25,7 +26,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
         public bool IsEnabled { get => Slider.isEnabled; set => Slider.isEnabled = value; }
         public Color32 Color { get => Slider.color; set => Slider.color = value; }
 
-        protected SliderComponent(UIPanel panel, UILabel label, UISlider slider) : base(label)
+        protected SliderComponent(IModContext context, UIPanel panel, UILabel label, UISlider slider) : base(context, label)
         {
             slider.eventValueChanged += ValueChangedHandler;
             slider.eventIsEnabledChanged += IsEnabledChangedHandler;
@@ -62,7 +63,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             }
         }
 
-        public static SliderComponent Create(UIComponent root)
+        public static SliderComponent Create(IModContext context, UIComponent root)
         {
             var panel = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UIPanel;
             var label = panel.Find<UILabel>("Label");
@@ -70,7 +71,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new SliderComponent(panel, label, slider);
+            return new SliderComponent(context, panel, label, slider);
         }
 
         #region IDisposable

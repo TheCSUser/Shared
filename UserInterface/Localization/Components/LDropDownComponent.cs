@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
@@ -17,16 +18,16 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             set
             {
                 _text = value;
-                base.Text = value?.Translate() ?? string.Empty;
+                base.Text = value is null ? "" : LocaleManager.Current.Translate(value.Phrase, value.Values);
             }
         }
 
-        protected LDropDownComponent(UIPanel panel, UILabel label, UIDropDown dropDown) : base(panel, label, dropDown)
+        protected LDropDownComponent(IModContext context, UIPanel panel, UILabel label, UIDropDown dropDown) : base(context, panel, label, dropDown)
         {
             Styles.Add(LocalizedComponent(this));
         }
 
-        public static new LDropDownComponent Create(UIComponent root)
+        public static new LDropDownComponent Create(IModContext context, UIComponent root)
         {
             var panel = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UIPanel;
             var label = panel.Find<UILabel>("Label");
@@ -34,7 +35,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new LDropDownComponent(panel, label, dropDown);
+            return new LDropDownComponent(context, panel, label, dropDown);
         }
     }
 }

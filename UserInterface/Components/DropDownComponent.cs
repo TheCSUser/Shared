@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Logging;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 using System;
@@ -37,7 +38,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             }
         }
 
-        protected DropDownComponent(UIPanel panel, UILabel label, UIDropDown dropDown) : base(label)
+        protected DropDownComponent(IModContext context, UIPanel panel, UILabel label, UIDropDown dropDown) : base(context, label)
         {
             dropDown.eventSelectedIndexChanged += SelectedIndexChangedHandler;
             Panel = panel;
@@ -59,7 +60,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             }
         }
 
-        public static DropDownComponent Create(UIComponent root)
+        public static DropDownComponent Create(IModContext context, UIComponent root)
         {
             var panel = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UIPanel;
             var label = panel.Find<UILabel>("Label");
@@ -67,7 +68,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new DropDownComponent(panel, label, dropDown);
+            return new DropDownComponent(context, panel, label, dropDown);
         }
 
         #region IDisposable

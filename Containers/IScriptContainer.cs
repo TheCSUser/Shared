@@ -1,4 +1,4 @@
-﻿using com.github.TheCSUser.Shared.Common.Base;
+﻿using com.github.TheCSUser.Shared.Common;
 using System.Collections.Generic;
 
 namespace com.github.TheCSUser.Shared.Containers

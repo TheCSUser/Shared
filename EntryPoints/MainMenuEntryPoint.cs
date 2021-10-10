@@ -1,10 +1,10 @@
 ﻿using ColossalFramework;
 using ColossalFramework.Packaging;
 using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Common.Base;
 using com.github.TheCSUser.Shared.Containers;
-using com.github.TheCSUser.Shared.Imports;
 using com.github.TheCSUser.Shared.Logging;
+using com.github.TheCSUser.Shared.Properties;
+using com.github.TheCSUser.Shared.UserInterface.Localization;
 using ICities;
 using System;
 using System.Collections;
@@ -12,23 +12,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using UnityEngine;
-using static com.github.TheCSUser.Shared.Common.Patcher;
 
 namespace com.github.TheCSUser.Shared.EntryPoints
 {
     internal class MainMenuEntryPoint : IScriptContainer, IDisposableEx, IManagedLifecycle
     {
-        public static MainMenuEntryPoint Instance { get; private set; }
-
         private readonly Cached<ILoading> _loadingManager = new Cached<ILoading>(() => Singleton<SimulationManager>.exists ? Singleton<SimulationManager>.instance.m_ManagersWrapper.loading : null);
         protected ApplicationMode CurrentMode => _loadingManager.Value is null ? ApplicationMode.MainMenu : _loadingManager.Value.currentMode.ToApplicationMode();
 
         public bool IsEnabled { get; private set; }
 
-        public MainMenuEntryPoint()
+        public MainMenuEntryPoint(IModContext context)
         {
-            Instance = this;
+            _context = context;
+            _lifecycleManager = new MainMenuEntryPointLifecycleManager(context, this);
         }
 
         protected virtual void OnEnable()
@@ -104,6 +101,16 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             OnUpdate();
         }
 
+        #region Context
+        private readonly IModContext _context;
+
+        protected IMod Mod => _context.Mod;
+        protected IPatcher Patcher => _context.Patcher;
+        protected ILogger Log => _context.Log;
+        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
+        protected ILocaleManager LocaleManager => _context.LocaleManager;
+        #endregion
+
         #region Disposable
         public bool IsDisposed { get; private set; }
 
@@ -130,13 +137,10 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                 }
                 Scripts.Clear();
             }
-            Instance = null;
             IsDisposed = true;
         }
 
         public void Dispose() => Dispose(true);
-
-        ~MainMenuEntryPoint() => Dispose(false);
         #endregion
 
         #region ScriptContainer
@@ -152,19 +156,28 @@ namespace com.github.TheCSUser.Shared.EntryPoints
         #endregion
 
         #region Lifecycle
-        private static readonly IInitializable _lifecycleManager = new LifecycleManager();
+        private readonly MainMenuEntryPointLifecycleManager _lifecycleManager;
         public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private class LifecycleManager : LifecycleManagerBase
+        private class MainMenuEntryPointLifecycleManager : LifecycleManagerBase
         {
+            protected MainMenuEntryPoint EntryPoint { get; }
+
+            public MainMenuEntryPointLifecycleManager(IModContext context, MainMenuEntryPoint entryPoint) : base(context)
+            {
+                EntryPoint = entryPoint;
+            }
+
             protected override bool OnInitialize()
             {
-                Patch(MainMenuAwakePatch.Data);
-                Patch(LoadingManagerLoadLevelPatch.Data);
-                ModBase.Initialized += ModInitializedHandler;
-                ModBase.Terminating += ModTerminatingHandler;
+                Common.Patcher.Shared.Patch(MainMenuAwakePatch.Data);
+                Common.Patcher.Shared.Patch(LoadingManagerLoadLevelPatch.Data);
+                MainMenuAwakePatch.OnAwake += OnMainMenuAwake;
+                LoadingManagerLoadLevelPatch.OnLoadLevel += OnLoadingManagerLoadLevel;
+                Mod.Initialized += ModInitializedHandler;
+                Mod.Terminating += ModTerminatingHandler;
 
-                foreach (var script in Instance.Scripts)
+                foreach (var script in EntryPoint.Scripts)
                 {
                     if (script is null || script.IsDisposed) continue;
                     var lifecycleManager = script.GetLifecycleManager();
@@ -184,7 +197,7 @@ namespace com.github.TheCSUser.Shared.EntryPoints
 
             protected override bool OnTerminate()
             {
-                foreach (var script in ((IEnumerable<ScriptBase>)Instance.Scripts).Reverse())
+                foreach (var script in ((IEnumerable<ScriptBase>)EntryPoint.Scripts).Reverse())
                 {
                     if (script is null || script.IsDisposed) continue;
                     var lifecycleManager = script.GetLifecycleManager();
@@ -199,15 +212,47 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                     }
                 }
 
-                ModBase.Terminating -= ModTerminatingHandler;
-                ModBase.Initialized -= ModInitializedHandler;
-                Unpatch(LoadingManagerLoadLevelPatch.Data);
-                Unpatch(MainMenuAwakePatch.Data);
+                Mod.Terminating -= ModTerminatingHandler;
+                Mod.Initialized -= ModInitializedHandler;
+                MainMenuAwakePatch.OnAwake -= OnMainMenuAwake;
+                LoadingManagerLoadLevelPatch.OnLoadLevel -= OnLoadingManagerLoadLevel;
+                Common.Patcher.Shared.Unpatch(LoadingManagerLoadLevelPatch.Data);
+                Common.Patcher.Shared.Unpatch(MainMenuAwakePatch.Data);
                 return true;
             }
 
-            protected void ModInitializedHandler(object obj) => Instance.OnEnable();
-            protected void ModTerminatingHandler(object obj) => Instance.OnDisable();
+            protected void ModInitializedHandler(object obj) => EntryPoint.OnEnable();
+            protected void ModTerminatingHandler(object obj) => EntryPoint.OnDisable();
+
+            protected void OnMainMenuAwake()
+            {
+#if DEV
+                Log.Info($"{GetType().Name}.{nameof(OnMainMenuAwake)} enabling/updating.");
+#endif
+                try
+                {
+                    if (EntryPoint.IsEnabled) EntryPoint.Update();
+                    else EntryPoint.Enable();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"{GetType().Name}.{nameof(OnMainMenuAwake)} failed", e);
+                }
+            }
+            protected void OnLoadingManagerLoadLevel()
+            {
+#if DEV
+                Log.Info($"{GetType().Name}.{nameof(OnLoadingManagerLoadLevel)} disabling.");
+#endif
+                try
+                {
+                    EntryPoint.Disable();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"{GetType().Name}.{nameof(OnLoadingManagerLoadLevel)} failed", e);
+                }
+            }
         }
         #endregion
     }
@@ -215,6 +260,8 @@ namespace com.github.TheCSUser.Shared.EntryPoints
     #region Harmony patch
     internal static class MainMenuAwakePatch
     {
+        public static event Action OnAwake;
+
         public static readonly PatchData Data = new PatchData(
             patchId: $"{nameof(MainMenuEntryPoint)}.{nameof(MainMenuAwakePatch)}.{nameof(Postfix)}",
             target: () => typeof(MainMenu).GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance),
@@ -226,24 +273,25 @@ namespace com.github.TheCSUser.Shared.EntryPoints
         {
             if (!Data.IsPatchApplied) return;
 #if DEV
-            Log.Info($"{nameof(MainMenuAwakePatch)}.{nameof(Postfix)} enabling/updating {nameof(MainMenuEntryPoint)}.");
+            LibProperties.SharedContext.Log.Info($"{nameof(MainMenuAwakePatch)}.{nameof(Postfix)} enabling/updating {nameof(MainMenuEntryPoint)}.");
 #endif
             try
             {
-                var instance = MainMenuEntryPoint.Instance;
-                if (instance is null) return;
-                if (instance.IsEnabled) instance.Update();
-                else instance.Enable();
+                var handler = OnAwake;
+                if (handler is null) return;
+                handler();
             }
             catch (Exception e)
             {
-                Log.Error($"{nameof(MainMenuAwakePatch)}.{nameof(Postfix)} failed", e);
+                LibProperties.SharedContext.Log.Error($"{nameof(MainMenuAwakePatch)}.{nameof(Postfix)} failed", e);
             }
         }
     }
 
     internal static class LoadingManagerLoadLevelPatch
     {
+        public static event Action OnLoadLevel;
+
         public static readonly PatchData Data = new PatchData(
             patchId: $"{nameof(MainMenuEntryPoint)}.{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)}",
             target: () => typeof(LoadingManager).GetMethod("LoadLevel", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(Package.Asset), typeof(string), typeof(string), typeof(SimulationMetaData), typeof(bool) }, null),
@@ -255,17 +303,17 @@ namespace com.github.TheCSUser.Shared.EntryPoints
         {
             if (!Data.IsPatchApplied) return true;
 #if DEV
-            Log.Info($"{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)} disabling {nameof(MainMenuEntryPoint)}.");
+            LibProperties.SharedContext.Log.Info($"{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)} disabling {nameof(MainMenuEntryPoint)}.");
 #endif
             try
             {
-                var instance = MainMenuEntryPoint.Instance;
-                if (instance is null) return true;
-                instance.Disable();
+                var handler = OnLoadLevel;
+                if (handler is null) return true;
+                handler();
             }
             catch (Exception e)
             {
-                Log.Error($"{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)} failed", e);
+                LibProperties.SharedContext.Log.Error($"{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)} failed", e);
             }
             return true;
         }

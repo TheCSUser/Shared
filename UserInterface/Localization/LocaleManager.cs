@@ -1,7 +1,5 @@
 ﻿using ColossalFramework;
 using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Common.Base;
-using com.github.TheCSUser.Shared.Imports;
 using com.github.TheCSUser.Shared.Logging;
 using System;
 using System.Collections.Generic;
@@ -10,18 +8,27 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
 {
     using LanguageDictionary = Dictionary<string, string>;
 
-    public static class LocaleManager
+    public sealed class LocaleManager : ILocaleManager, IManagedLifecycle
     {
-        public static string GameLanguage => SingletonLite<ColossalFramework.Globalization.LocaleManager>.exists
+        public static ILocaleManager None = new DummyLocaleManager();
+
+        public event Action<string> LanguageChanged;
+
+        public string GameLanguage => SingletonLite<ColossalFramework.Globalization.LocaleManager>.exists
             ? SingletonLite<ColossalFramework.Globalization.LocaleManager>.instance.language
             : "";
-        public static event Action<string> LanguageChanged;
-        public static bool UsingGameLanguage { get; private set; }
+        public bool UsingGameLanguage { get; private set; }
 
-        private static LanguageDictionary _current;
-        public static LanguageDictionary Current => _current ?? LocaleLibrary.DefaultLanguage;
+        private ILanguageDictionary _current;
+        public ILanguageDictionary Current => _current ?? LocaleLibrary.Get();
 
-        public static void ChangeTo(string key)
+        internal LocaleManager(IModContext context)
+        {
+            _context = context;
+            _lifecycleManager = new LocaleManagerLifecycleManager(context, this);
+        }
+
+        public void ChangeTo(string key)
         {
 #if DEV || PREVIEW
             Log.Info($"{nameof(LocaleManager)}.{nameof(ChangeTo)} setting language to {key}");
@@ -32,7 +39,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             var _event = LanguageChanged;
             if (!(_event is null)) _event(key);
         }
-        public static void ChangeToGameLanguage()
+        public void ChangeToGameLanguage()
         {
 #if DEV
             Log.Info($"{nameof(LocaleManager)}.{nameof(ChangeToGameLanguage)} setting language to game language");
@@ -45,8 +52,15 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             if (!(_event is null)) _event(key);
         }
 
+        #region Context
+        private readonly IModContext _context;
+
+        private ILogger Log => _context.Log;
+        private ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
+        #endregion
+
         #region Events handling
-        private static void OnEventUIComponentLocaleChanged()
+        private void OnEventUIComponentLocaleChanged()
         {
 #if DEV
             Log.Info($"{nameof(LocaleManager)}.{nameof(OnEventUIComponentLocaleChanged)} fired");
@@ -55,7 +69,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             if (UsingGameLanguage) ChangeToGameLanguage();
         }
 
-        private static void OnEventLocaleChanged()
+        private void OnEventLocaleChanged()
         {
 #if DEV
             Log.Info($"{nameof(LocaleManager)}.{nameof(OnEventLocaleChanged)} fired");
@@ -66,23 +80,47 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         #endregion
 
         #region Lifecycle
-        private static readonly Lazy<IInitializable> _lifecycleManager = new Lazy<IInitializable>(() => new LifecycleManager());
-        public static IInitializable GetLifecycleManager() => _lifecycleManager.Value;
+        private readonly LocaleManagerLifecycleManager _lifecycleManager;
+        public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private class LifecycleManager : LifecycleManagerBase
+        private sealed class LocaleManagerLifecycleManager : LifecycleManagerBase
         {
+            private readonly LocaleManager _localeManager;
+
+            public LocaleManagerLifecycleManager(IModContext context, LocaleManager localeManager) : base(context)
+            {
+                _localeManager = localeManager;
+            }
+
             protected override bool OnInitialize()
             {
-                ColossalFramework.Globalization.LocaleManager.eventLocaleChanged += OnEventLocaleChanged;
-                ColossalFramework.Globalization.LocaleManager.eventUIComponentLocaleChanged += OnEventUIComponentLocaleChanged;
+                ColossalFramework.Globalization.LocaleManager.eventLocaleChanged += _localeManager.OnEventLocaleChanged;
+                ColossalFramework.Globalization.LocaleManager.eventUIComponentLocaleChanged += _localeManager.OnEventUIComponentLocaleChanged;
                 return true;
             }
             protected override bool OnTerminate()
             {
-                ColossalFramework.Globalization.LocaleManager.eventLocaleChanged -= OnEventLocaleChanged;
-                ColossalFramework.Globalization.LocaleManager.eventUIComponentLocaleChanged -= OnEventUIComponentLocaleChanged;
+                ColossalFramework.Globalization.LocaleManager.eventLocaleChanged -= _localeManager.OnEventLocaleChanged;
+                ColossalFramework.Globalization.LocaleManager.eventUIComponentLocaleChanged -= _localeManager.OnEventUIComponentLocaleChanged;
                 return true;
             }
+        }
+        #endregion
+
+        #region Dummy
+        private class DummyLocaleManager : ILocaleManager
+        {
+            public ILanguageDictionary Current => Localization.LanguageDictionary.None;
+
+            public string GameLanguage => "";
+
+            public bool UsingGameLanguage => false;
+
+            public event Action<string> LanguageChanged { add { } remove { } }
+
+            public void ChangeTo(string key) { }
+
+            public void ChangeToGameLanguage() { }
         }
         #endregion
     }

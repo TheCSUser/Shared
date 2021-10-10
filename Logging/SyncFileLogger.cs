@@ -17,16 +17,17 @@ namespace com.github.TheCSUser.Shared.Logging
 #else
         private const int LOG_RETENTION_DAYS = 7;
 #endif
-        public static string Path { get; set; } = null;
+        public string Path { get; }
         public string FileName { get; }
 
-        public SyncFileLogger()
+        public SyncFileLogger(string path)
         {
+            Path = path;
             FileName = Combine(Path, $"{Now.ToString("yyyy-MM-dd_HHmm", CultureInfo.InvariantCulture)}.log");
             RemoveOldFiles();
         }
 
-        private static void RemoveOldFiles()
+        private void RemoveOldFiles()
         {
             if (string.IsNullOrEmpty(Path)) return;
             try

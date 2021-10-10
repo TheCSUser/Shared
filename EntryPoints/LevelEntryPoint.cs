@@ -1,9 +1,8 @@
 ﻿using ColossalFramework;
 using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Common.Base;
 using com.github.TheCSUser.Shared.Containers;
-using com.github.TheCSUser.Shared.Imports;
 using com.github.TheCSUser.Shared.Logging;
+using com.github.TheCSUser.Shared.UserInterface.Localization;
 using ICities;
 using System;
 using System.Collections;
@@ -20,10 +19,11 @@ namespace com.github.TheCSUser.Shared.EntryPoints
 
         protected readonly ApplicationMode RequiredMode;
 
-        public LevelEntryPoint(ApplicationMode mode)
+        public LevelEntryPoint(IModContext context, ApplicationMode mode)
         {
+            _context = context;
             RequiredMode = mode;
-            _lifecycleManager = new LifecycleManager(this);
+            _lifecycleManager = new LifecycleManager(context, this);
         }
 
         protected virtual void OnEnable()
@@ -75,6 +75,16 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             if (!_lifecycleManager.IsInitialized) return;
             OnDisable();
         }
+
+        #region Context
+        private readonly IModContext _context;
+
+        protected IMod Mod => _context.Mod;
+        protected IPatcher Patcher => _context.Patcher;
+        protected ILogger Log => _context.Log;
+        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
+        protected ILocaleManager LocaleManager => _context.LocaleManager;
+        #endregion
 
         #region Disposable
         public bool IsDisposed { get; private set; }
@@ -128,7 +138,7 @@ namespace com.github.TheCSUser.Shared.EntryPoints
         {
             private readonly LevelEntryPoint _parent;
 
-            public LifecycleManager(LevelEntryPoint parent)
+            public LifecycleManager(IModContext context, LevelEntryPoint parent) : base(context)
             {
                 _parent = parent;
             }
@@ -137,8 +147,8 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             {
                 Singleton<LoadingManager>.instance.m_levelLoaded += _parent.LevelLoadedHandler;
                 Singleton<LoadingManager>.instance.m_levelPreUnloaded += _parent.LevelPreUnloadedHandler;
-                ModBase.Initialized += ModInitializedHandler;
-                ModBase.Terminating += ModTerminatingHandler;
+                Mod.Initialized += ModInitializedHandler;
+                Mod.Terminating += ModTerminatingHandler;
 
                 foreach (var script in _parent.Scripts)
                 {
@@ -175,8 +185,8 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                     }
                 }
 
-                ModBase.Terminating -= ModTerminatingHandler;
-                ModBase.Initialized -= ModInitializedHandler;
+                Mod.Terminating -= ModTerminatingHandler;
+                Mod.Initialized -= ModInitializedHandler;
                 Singleton<LoadingManager>.instance.m_levelLoaded -= _parent.LevelLoadedHandler;
                 Singleton<LoadingManager>.instance.m_levelPreUnloaded -= _parent.LevelPreUnloadedHandler;
                 return true;

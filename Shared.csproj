@@ -26,8 +26,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants>RELEASE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -48,6 +47,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
@@ -77,11 +77,18 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\ApplicationMode.cs" />
-    <Compile Include="Common\Base\LifecycleManagerBase.cs" />
+    <Compile Include="Common\IMod.cs" />
+    <Compile Include="Common\LifecycleManagerBase.cs" />
+    <Compile Include="Common\Mod.cs" />
+    <Compile Include="Common\IWithContext.cs" />
     <Compile Include="Common\ILifecycleManaged.cs" />
+    <Compile Include="Common\IModContext.cs" />
+    <Compile Include="Common\IPatcher.cs" />
+    <Compile Include="Common\PatchData.cs" />
     <Compile Include="Common\SlidingDelayAction.cs" />
     <Compile Include="Containers\IInitializableContainer.cs" />
     <Compile Include="Containers\IScriptContainer.cs" />
+    <Compile Include="Common\ModContext.cs" />
     <Compile Include="EntryPoints\LevelEntryPoint.cs" />
     <Compile Include="EntryPoints\MainMenuEntryPoint.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -105,7 +112,7 @@
     <Compile Include="Logging\Log.cs" />
     <Compile Include="Logging\SyncFileLogger.cs" />
     <Compile Include="Logging\UnityDebugLogger.cs" />
-    <Compile Include="Common\Base\ScriptBase.cs" />
+    <Compile Include="Common\ScriptBase.cs" />
     <Compile Include="UserInterface\Components\Base\Component .cs" />
     <Compile Include="UserInterface\Components\Base\TextComponent.cs" />
     <Compile Include="UserInterface\Components\ButtonComponent.cs" />
@@ -126,8 +133,11 @@
     <Compile Include="UserInterface\Localization\Components\LSliderComponent.cs" />
     <Compile Include="UserInterface\Localization\Components\LocalizationStyles.cs" />
     <Compile Include="UserInterface\Localization\Components\LTextFieldComponent.cs" />
+    <Compile Include="UserInterface\Localization\ILanguageDictionary.cs" />
+    <Compile Include="UserInterface\Localization\ILocaleLibrary.cs" />
+    <Compile Include="UserInterface\Localization\ILocaleManager.cs" />
+    <Compile Include="UserInterface\Localization\LanguageDictionary.cs" />
     <Compile Include="UserInterface\Localization\LocaleConstants.cs" />
-    <Compile Include="UserInterface\Localization\LocaleExtensions.cs" />
     <Compile Include="UserInterface\Localization\LocaleLibrary.cs" />
     <Compile Include="UserInterface\Localization\LocaleManager.cs" />
     <Compile Include="UserInterface\Localization\LocalizedUIBuilder.cs" />
@@ -139,7 +149,7 @@
     <Compile Include="Common\IInitializable.cs" />
     <Compile Include="Imports\StringEnum.cs" />
     <Compile Include="UserInterface\Localization\LocaleText.cs" />
-    <Compile Include="Common\Base\ModBase.cs" />
+    <Compile Include="Common\ModBase.cs" />
     <Compile Include="Settings\ISettingsReaderWriter.cs" />
     <Compile Include="Settings\SettingsFile.cs" />
     <Compile Include="Settings\SettingsReaderWriter.cs" />

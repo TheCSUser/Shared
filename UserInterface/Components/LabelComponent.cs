@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Components
@@ -7,18 +8,18 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
     {
         public UILabel Label { get; }
 
-        protected LabelComponent(UILabel label) : base(label)
+        protected LabelComponent(IModContext context, UILabel label) : base(context, label)
         {
             Label = label;
         }
 
-        public static LabelComponent Create(UIComponent root)
+        public static LabelComponent Create(IModContext context, UIComponent root)
         {
             var label = root.AddUIComponent<UILabel>();
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new LabelComponent(label);
+            return new LabelComponent(context, label);
         }
     }
 }

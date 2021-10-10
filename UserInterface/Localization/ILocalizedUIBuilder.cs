@@ -17,6 +17,6 @@ namespace com.github.TheCSUser.Shared.UserInterface
         IDropDown AddDropdown(LocaleText text, string[] options, int defaultSelection, Action<IDropDown, int> eventCallback, float textScale = 1.0f, Color32? textColor = null, Color32? color = null, bool enabled = true);
         ILabel AddLabel(LocaleText text, float textScale = 1.0f, Color32? textColor = null);
         ISlider AddSlider(LocaleText text, float minValue, float maxValue, float stepSize, float value, Action<ISlider, float> eventCallback, float textScale = 1.0f, float width = 227.0f, Color32? textColor = null, Color32? color = null, bool enabled = true);
-        object AddSpace(float height);
+        ISpace AddSpace(float height);
     }
 }

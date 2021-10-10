@@ -7,6 +7,17 @@ namespace com.github.TheCSUser.Shared.Containers
 {
     public sealed class DisposableContainer : List<IDisposable>, IDisposableEx, IDisposableContainer
     {
+        public DisposableContainer(IModContext context) : base()
+        {
+            _context = context;
+        }
+
+        #region Context
+        private readonly IModContext _context;
+
+        private ILogger Log => _context.Log;
+        #endregion
+
         #region Disposable
         private bool _isDisposed;
         public bool IsDisposed => _isDisposed;

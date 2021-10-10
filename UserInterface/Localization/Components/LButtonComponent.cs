@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components;
 using System;
 
@@ -18,21 +19,21 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             set
             {
                 _text = value;
-                base.Text = value?.Translate() ?? string.Empty;
+                base.Text = value is null ? "" : LocaleManager.Current.Translate(value.Phrase, value.Values);
             }
         }
 
-        protected LButtonComponent(UIButton button) : base(button)
+        protected LButtonComponent(IModContext context, UIButton button) : base(context, button)
         {
             Styles.Add(LocalizedComponent(this));
         }
 
-        public static new LButtonComponent Create(UIComponent root)
+        public static new LButtonComponent Create(IModContext context, UIComponent root)
         {
             var button = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UIButton;
             button.autoSize = true;
             button.wordWrap = false;
-            return new LButtonComponent(button);
+            return new LButtonComponent(context, button);
         }
     }
 }

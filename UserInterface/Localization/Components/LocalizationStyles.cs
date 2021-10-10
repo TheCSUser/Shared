@@ -8,32 +8,39 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
     internal static class LocalizationStyles
     {
         public static IDisposable LocalizedComponent<T>(T component)
-            where T : ILocalizedComponent, ITextComponent, IDisposableEx
+            where T : ILocalizedComponent, ITextComponent, IDisposableEx, IWithContext
         {
+            ILogger Log() => component?.Context?.Log ?? Logging.Log.None;
+            ILocaleManager LocaleManager() => component?.Context?.LocaleManager ?? Localization.LocaleManager.None;
+
             void languageChangedHandler(string key)
             {
                 if (component.IsDisposed) return;
                 try
                 {
-                    if (((ILocalizedComponent)component).Text is null)
+                    var localizedComponent = (ILocalizedComponent)component;
+                    var textComponent = (ITextComponent)component;
+
+                    if (localizedComponent.Text is null)
                     {
-                        ((ITextComponent)component).Text = string.Empty;
+                        textComponent.Text = string.Empty;
                         return;
                     }
-                    var translatedText = ((ILocalizedComponent)component).Text.Translate(key) ?? string.Empty;
+
+                    var translatedText = localizedComponent.Text is null ? "" : LocaleManager().Current.Translate(localizedComponent.Text.Phrase, localizedComponent.Text.Values);
 #if DEV
-                    Log.Info($"{component.GetType().Name}.{nameof(LocalizedComponent)} translating to {key}, phrase: {((ILocalizedComponent)component).Text.Phrase}, text: {translatedText}");
+                    Log().Info($"{component.GetType().Name}.{nameof(LocalizedComponent)} translating to {key}, phrase: {localizedComponent?.Text?.Phrase}, text: {translatedText}");
 #endif
-                    ((ITextComponent)component).Text = translatedText;
+                    textComponent.Text = translatedText;
                 }
                 catch (Exception e)
                 {
-                    Log.Error($"{component.GetType().Name}.{nameof(LocalizedComponent)} failed", e);
+                    Log().Error($"{component.GetType().Name}.{nameof(LocalizedComponent)} failed", e);
                 }
             }
 
-            LocaleManager.LanguageChanged += languageChangedHandler;
-            return DisposableExtensions.AsDisposable(() => LocaleManager.LanguageChanged -= languageChangedHandler);
+            LocaleManager().LanguageChanged += languageChangedHandler;
+            return DisposableExtensions.AsDisposable(() => LocaleManager().LanguageChanged -= languageChangedHandler);
         }
     }
 }

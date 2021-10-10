@@ -1,4 +1,5 @@
-﻿using com.github.TheCSUser.Shared.Logging;
+﻿using com.github.TheCSUser.Shared.Common;
+using com.github.TheCSUser.Shared.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,19 +8,20 @@ using System.Xml.Serialization;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization.Serialization
 {
-    using Library = Dictionary<string, Dictionary<string, string>>;
+    using Library = Dictionary<string, ILanguageDictionary>;
     using static Path;
 
     public sealed class LocaleReader
     {
-        private static readonly XmlSerializer Serializer;
+        private readonly XmlSerializer _serializer;
 
-        static LocaleReader()
+        internal LocaleReader(IModContext context)
         {
-            Serializer = new XmlSerializer(typeof(LocaleFile));
+            _serializer = new XmlSerializer(typeof(LocaleFile));
+            _context = context;
         }
 
-        public static Library Load(string path)
+        public Library Load(string path)
         {
 #if DEV
             Log.Info($"{nameof(LocaleReader)}.{nameof(Load)} loading translations files from {path}");
@@ -37,11 +39,11 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Serialization
                     LocaleFile file;
                     using (var streamReader = new StreamReader(fileName))
                     {
-                        file = (Serializer.Deserialize(streamReader) as LocaleFile);
+                        file = (_serializer.Deserialize(streamReader) as LocaleFile);
                     }
                     library.Add(
                         GetFileNameWithoutExtension(fileName).Split('.').Last().ToLower(),
-                        file.ToDictionary(item => item.Name, item => item.Value));
+                        new LanguageDictionary(_context, file.ToDictionary(item => item.Name, item => item.Value)));
                 }
                 return library;
             }
@@ -51,5 +53,11 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Serialization
                 return new Library();
             }
         }
+
+        #region Context
+        private readonly IModContext _context;
+
+        private ILogger Log => _context.Log;
+        #endregion
     }
 }

@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace com.github.TheCSUser.Shared.UserInterface
 {
-    public sealed class UIBuilder : IUIBuilder, IDisposableContainer
+    public sealed class UIBuilder : IUIBuilder, IDisposableContainer, IWithContext
     {
         private readonly UIComponent _root;
         public UIComponent Root
@@ -22,13 +22,15 @@ namespace com.github.TheCSUser.Shared.UserInterface
             }
         }
 
-        internal UIBuilder(UIHelper helper, DisposableContainer disposables)
+        internal UIBuilder(IModContext context, UIHelper helper, DisposableContainer disposables)
         {
+            _context = context;
             _root = (UIComponent)helper.GetField("m_Root");
             _disposables = disposables;
         }
-        internal UIBuilder(UIComponent root, DisposableContainer disposables)
+        internal UIBuilder(IModContext context, UIComponent root, DisposableContainer disposables)
         {
+            _context = context;
             _root = root;
             _disposables = disposables;
         }
@@ -36,7 +38,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public GroupComponent AddGroup(string text, float textScale = 1.0f, Color32? textColor = null)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = GroupComponent.Create(Root, _disposables);
+            var component = GroupComponent.Create(_context, Root, _disposables);
             component.Text = text;
             component.TextScale = textScale;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -47,7 +49,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public ButtonComponent AddButton(string text, Action<IButton> onClick, float textScale = 1.0f, Color32? textColor = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = ButtonComponent.Create(Root);
+            var component = ButtonComponent.Create(_context, Root);
             component.Text = text;
             component.TextScale = textScale;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -59,7 +61,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public CheckBoxComponent AddCheckbox(string text, bool value, Action<ICheckbox, bool> onCheckedChanged, float textScale = 1.0f, Color32? textColor = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = CheckBoxComponent.Create(Root);
+            var component = CheckBoxComponent.Create(_context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -72,7 +74,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public DropDownComponent AddDropdown(string text, string[] options, int defaultSelection, Action<IDropDown, int> onSelectedIndexChanged, float textScale = 1.0f, Color32? textColor = null, Color32? color = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = DropDownComponent.Create(Root);
+            var component = DropDownComponent.Create(_context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -87,7 +89,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public LabelComponent AddLabel(string text, float textScale = 1.0f, Color32? textColor = null)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = LabelComponent.Create(Root);
+            var component = LabelComponent.Create(_context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -97,7 +99,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public SliderComponent AddSlider(string text, float minValue, float maxValue, float stepSize, float value, Action<ISlider, float> onValueChanged, float textScale = 1.0f, float width = 227.0f, Color32? textColor = null, Color32? color = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = SliderComponent.Create(Root);
+            var component = SliderComponent.Create(_context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -115,12 +117,18 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public SpaceComponent AddSpace(float height)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = SpaceComponent.Create(Root);
+            var component = SpaceComponent.Create(_context, Root);
             component.Height = height;
             return component;
         }
 
-        #region IDisposableContainer
+        #region Context
+        private readonly IModContext _context;
+
+        public IModContext Context => _context;
+        #endregion
+
+        #region DisposableContainer
         private DisposableContainer _disposables;
         void IDisposableContainer.Add(IDisposable disposable)
         {
@@ -137,10 +145,10 @@ namespace com.github.TheCSUser.Shared.UserInterface
             if (disposables is null) return Enumerable.Empty<IDisposable>().GetEnumerator();
             return disposables.GetEnumerator();
         }
-    #endregion
+        #endregion
 
-    #region IDisposable
-    public bool IsDisposed { get; private set; }
+        #region Disposable
+        public bool IsDisposed { get; private set; }
         public void Dispose()
         {
             if (IsDisposed) return;
@@ -149,9 +157,9 @@ namespace com.github.TheCSUser.Shared.UserInterface
         }
         #endregion
 
-        #region IUIBuilder
+        #region UIBuilder
         IGroup IUIBuilder.AddGroup(string text, float textScale, Color32? textColor)
-    => AddGroup(text, textScale, textColor);
+            => AddGroup(text, textScale, textColor);
         IButton IUIBuilder.AddButton(string text, Action<IButton> eventCallback, float textScale, Color32? textColor, bool enabled)
             => AddButton(text, eventCallback, textScale, textColor, enabled);
         ICheckbox IUIBuilder.AddCheckbox(string text, bool value, Action<ICheckbox, bool> eventCallback, float textScale, Color32? textColor, bool enabled)
@@ -166,4 +174,4 @@ namespace com.github.TheCSUser.Shared.UserInterface
             => AddSpace(height);
         #endregion
     }
-}
+}   

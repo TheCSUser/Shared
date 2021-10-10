@@ -1,4 +1,5 @@
 ﻿using ColossalFramework.UI;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Containers;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 
@@ -20,7 +21,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             set
             {
                 _text = value;
-                base.Text = value?.Translate() ?? string.Empty;
+                base.Text = value is null ? "" : LocaleManager.Current.Translate(value.Phrase, value.Values);
             }
         }
 
@@ -28,7 +29,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
         public UILabel Label { get; }
         public LocalizedUIBuilder Builder { get; }
 
-        protected LGroupComponent(UIPanel panel, UILabel label, LocalizedUIBuilder builder) : base(label)
+        protected LGroupComponent(IModContext context, UIPanel panel, UILabel label, LocalizedUIBuilder builder) : base(context, label)
         {
             Panel = panel;
             Label = label;
@@ -37,13 +38,13 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
             Styles.Add(LocalizedComponent(this));
         }
 
-        public static LGroupComponent Create(UIComponent root, DisposableContainer disposables)
+        public static LGroupComponent Create(IModContext context, UIComponent root, DisposableContainer disposables)
         {
             var panel = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UIPanel;
             var label = panel.Find<UILabel>("Label");
             var content = panel.Find("Content");
-            var builder = new LocalizedUIBuilder(content, disposables);
-            return new LGroupComponent(panel, label, builder);
+            var builder = new LocalizedUIBuilder(context, content, disposables);
+            return new LGroupComponent(context, panel, label, builder);
         }
 
         #region ILocalizedGroup

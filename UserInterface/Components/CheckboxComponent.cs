@@ -1,5 +1,5 @@
 ﻿using ColossalFramework.UI;
-using com.github.TheCSUser.Shared.Logging;
+using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 using System;
 
@@ -17,7 +17,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
         public bool IsChecked { get => CheckBox.isChecked; set => CheckBox.isChecked = value; }
         public bool IsEnabled { get => CheckBox.isEnabled; set => CheckBox.isEnabled = value; }
 
-        protected CheckBoxComponent(UILabel label, UICheckBox checkBox) : base(label)
+        protected CheckBoxComponent(IModContext context, UILabel label, UICheckBox checkBox) : base(context, label)
         {
             checkBox.eventCheckChanged += CheckChangedHandler;
             Label = label;
@@ -38,14 +38,14 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components
             }
         }
 
-        public static CheckBoxComponent Create(UIComponent root)
+        public static CheckBoxComponent Create(IModContext context, UIComponent root)
         {
             var checkBox = root.AttachUIComponent(UITemplateManager.GetAsGameObject(TemplateName)) as UICheckBox;
             var label = checkBox.label;
             label.autoSize = true;
             label.autoHeight = false;
             label.wordWrap = false;
-            return new CheckBoxComponent(label, checkBox);
+            return new CheckBoxComponent(context, label, checkBox);
         }
 
         #region IDisposable

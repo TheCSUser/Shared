@@ -1,13 +1,15 @@
 ﻿using com.github.TheCSUser.Shared.Logging;
+using com.github.TheCSUser.Shared.UserInterface.Localization;
 using System;
 
-namespace com.github.TheCSUser.Shared.Common.Base
+namespace com.github.TheCSUser.Shared.Common
 {
     public static class LifecycleManager
     {
-        public static IInitializable<bool> Empty = new EmptyLifecycle();
+        public static IInitializable<bool> None = new DummyLifecycleManager();
 
-        private class EmptyLifecycle : IInitializable<bool>
+        #region DummyLifecycleManager
+        private sealed class DummyLifecycleManager : IInitializable<bool>
         {
             public bool IsInitialized { get; private set; }
 
@@ -32,13 +34,29 @@ namespace com.github.TheCSUser.Shared.Common.Base
             {
                 IsInitialized = false;
             }
-        }
+        } 
+        #endregion
     }
 
     public abstract class LifecycleManagerBase : IInitializable<bool>
     {
         protected abstract bool OnInitialize();
         protected abstract bool OnTerminate();
+
+        public LifecycleManagerBase(IModContext context)
+        {
+            _context = context;
+        }
+
+        #region Context
+        private readonly IModContext _context;
+
+        protected IMod Mod => _context.Mod;
+        protected IPatcher Patcher => _context.Patcher;
+        protected ILogger Log => _context.Log;
+        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
+        protected ILocaleManager LocaleManager => _context.LocaleManager;
+        #endregion
 
         #region Initializable
         private bool _isInitialized;
