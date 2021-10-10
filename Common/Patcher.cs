@@ -9,7 +9,7 @@ namespace com.github.TheCSUser.Shared.Common
     public sealed class Patcher : IPatcher, IManagedLifecycle
     {
         public static IPatcher None = new DummyPatcher();
-        internal static IPatcher Shared = new Patcher(LibProperties.SharedContext, LibProperties.HarmonyId);
+        internal static Patcher Shared = new Patcher(LibProperties.SharedContext, LibProperties.HarmonyId);
 
         private readonly Dictionary<string, int> Patches = new Dictionary<string, int>();
 

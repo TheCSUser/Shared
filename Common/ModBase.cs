@@ -154,7 +154,11 @@ namespace com.github.TheCSUser.Shared.Common
             var assemblyName = GetType().Assembly.GetName();
             UseHarmony($"{assemblyName.Name} {assemblyName.Version} {Guid.NewGuid()}");
         }
-        protected void UseHarmony(string harmonyId) => _context.Patcher = Use(new Patcher(_context, harmonyId));
+        protected void UseHarmony(string harmonyId)
+        {
+            Use(Common.Patcher.Shared);
+            _context.Patcher = Use(new Patcher(_context, harmonyId));
+        }
         #endregion
 
         #region UseLocalization
