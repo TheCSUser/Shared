@@ -48,7 +48,11 @@ namespace com.github.TheCSUser.Shared.Common
                         toDispose.Dispose();
                         if (!(Action is null)) Action(Parameters);
                     }
+#if DEV
                     catch (Exception e)
+#else
+                    catch
+#endif
                     {
 #if DEV
                         LibProperties.SharedContext.Log.Error($"{GetType().Name}.{nameof(Timer)}.callback failed", e);
