@@ -171,9 +171,8 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             protected override bool OnInitialize()
             {
                 Common.Patcher.Shared.Patch(MainMenuAwakePatch.Data);
-                Common.Patcher.Shared.Patch(LoadingManagerLoadLevelPatch.Data);
                 MainMenuAwakePatch.OnAwake += OnMainMenuAwake;
-                LoadingManagerLoadLevelPatch.OnLoadLevel += OnLoadingManagerLoadLevel;
+                Singleton<LoadingManager>.instance.m_levelPreLoaded += OnLevelPreLoaded;
                 Mod.Initialized += ModInitializedHandler;
                 Mod.Terminating += ModTerminatingHandler;
 
@@ -214,9 +213,8 @@ namespace com.github.TheCSUser.Shared.EntryPoints
 
                 Mod.Terminating -= ModTerminatingHandler;
                 Mod.Initialized -= ModInitializedHandler;
+                Singleton<LoadingManager>.instance.m_levelPreLoaded -= OnLevelPreLoaded;
                 MainMenuAwakePatch.OnAwake -= OnMainMenuAwake;
-                LoadingManagerLoadLevelPatch.OnLoadLevel -= OnLoadingManagerLoadLevel;
-                Common.Patcher.Shared.Unpatch(LoadingManagerLoadLevelPatch.Data);
                 Common.Patcher.Shared.Unpatch(MainMenuAwakePatch.Data);
                 return true;
             }
@@ -239,10 +237,10 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                     Log.Error($"{GetType().Name}.{nameof(OnMainMenuAwake)} failed", e);
                 }
             }
-            protected void OnLoadingManagerLoadLevel()
+            protected void OnLevelPreLoaded()
             {
 #if DEV
-                Log.Info($"{GetType().Name}.{nameof(OnLoadingManagerLoadLevel)} disabling.");
+                Log.Info($"{GetType().Name}.{nameof(OnLevelPreLoaded)} disabling.");
 #endif
                 try
                 {
@@ -250,7 +248,7 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                 }
                 catch (Exception e)
                 {
-                    Log.Error($"{GetType().Name}.{nameof(OnLoadingManagerLoadLevel)} failed", e);
+                    Log.Error($"{GetType().Name}.{nameof(OnLevelPreLoaded)} failed", e);
                 }
             }
         }
@@ -285,37 +283,6 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             {
                 LibProperties.SharedContext.Log.Error($"{nameof(MainMenuAwakePatch)}.{nameof(Postfix)} failed", e);
             }
-        }
-    }
-
-    internal static class LoadingManagerLoadLevelPatch
-    {
-        public static event Action OnLoadLevel;
-
-        public static readonly PatchData Data = new PatchData(
-            patchId: $"{nameof(MainMenuEntryPoint)}.{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)}",
-            target: () => typeof(LoadingManager).GetMethod("LoadLevel", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(Package.Asset), typeof(string), typeof(string), typeof(SimulationMetaData), typeof(bool) }, null),
-            prefix: () => typeof(LoadingManagerLoadLevelPatch).GetMethod(nameof(Prefix), BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)
-        );
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static bool Prefix(LoadingManager __instance)
-        {
-            if (!Data.IsPatchApplied) return true;
-#if DEV
-            LibProperties.SharedContext.Log.Info($"{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)} disabling {nameof(MainMenuEntryPoint)}.");
-#endif
-            try
-            {
-                var handler = OnLoadLevel;
-                if (handler is null) return true;
-                handler();
-            }
-            catch (Exception e)
-            {
-                LibProperties.SharedContext.Log.Error($"{nameof(LoadingManagerLoadLevelPatch)}.{nameof(Prefix)} failed", e);
-            }
-            return true;
         }
     }
     #endregion
