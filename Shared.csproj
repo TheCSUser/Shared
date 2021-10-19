@@ -77,8 +77,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\ApplicationMode.cs" />
+    <Compile Include="Common\PluginHelperProxy.cs" />
+    <Compile Include="Common\SharedDependencies.cs" />
+    <Compile Include="Common\WithContext.cs" />
+    <Compile Include="Containers\DependencyInjectionContainer.cs" />
+    <Compile Include="Containers\IDependencyInjectionContainer.cs" />
     <Compile Include="Common\IMod.cs" />
-    <Compile Include="Common\LifecycleManagerBase.cs" />
+    <Compile Include="Common\LifecycleManager.cs" />
     <Compile Include="Common\Mod.cs" />
     <Compile Include="Common\IWithContext.cs" />
     <Compile Include="Common\ILifecycleManaged.cs" />
@@ -91,6 +96,7 @@
     <Compile Include="Common\ModContext.cs" />
     <Compile Include="EntryPoints\LevelEntryPoint.cs" />
     <Compile Include="EntryPoints\MainMenuEntryPoint.cs" />
+    <Compile Include="Common\MainMenuProxy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\LibProperties.cs" />
     <Compile Include="Common\Cached.cs" />
@@ -113,6 +119,8 @@
     <Compile Include="Logging\SyncFileLogger.cs" />
     <Compile Include="Logging\UnityDebugLogger.cs" />
     <Compile Include="Common\ScriptBase.cs" />
+    <Compile Include="Settings\ISettings.cs" />
+    <Compile Include="Settings\ReadOnlySettingsFile.cs" />
     <Compile Include="UserInterface\Components\Base\Component .cs" />
     <Compile Include="UserInterface\Components\Base\TextComponent.cs" />
     <Compile Include="UserInterface\Components\ButtonComponent.cs" />

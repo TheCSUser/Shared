@@ -1,18 +1,14 @@
 ﻿using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Imports;
-using com.github.TheCSUser.Shared.Logging;
 using System;
-using System.ComponentModel;
 using System.IO;
 using System.Xml.Serialization;
 
 namespace com.github.TheCSUser.Shared.Settings
 {
-    public class SettingsReaderWriter<TSettingsDto> : ISettingsReaderWriter<TSettingsDto>
-        where TSettingsDto : class, INotifyPropertyChanged
+    public abstract class SettingsReaderWriter<TSettingsDto> : WithContext, ISettingsReaderWriter<TSettingsDto>
+        where TSettingsDto : class, ISettings
     {
-        private readonly Lazy<string> _fileName;
-        public string FileName => _fileName.Value;
+        public abstract string FileName { get; }
 
         private static readonly XmlSerializer Serializer;
         private static readonly XmlSerializerNamespaces Namespaces;
@@ -25,11 +21,7 @@ namespace com.github.TheCSUser.Shared.Settings
             Namespaces = noNamespaces;
         }
 
-        public SettingsReaderWriter(IModContext context, Func<string> pathResolver)
-        {
-            _context = context;
-            _fileName = new Lazy<string>(pathResolver);
-        }
+        public SettingsReaderWriter(IModContext context) : base(context) { }
 
         public virtual void Save(TSettingsDto data)
         {
@@ -75,14 +67,14 @@ namespace com.github.TheCSUser.Shared.Settings
                     }
                 }
 #if DEV
-                Log.Info($"{GetType().Name}.{nameof(Load)} using new settings file");
+                Log.Info($"{GetType().Name}.{nameof(Load)} {FileName} does not exist");
 #endif
-                return default;
+                return null;
             }
             catch (Exception e)
             {
                 Log.Error($"{GetType().Name}.{nameof(Load)} failed", e);
-                return default;
+                return null;
             }
         }
 
@@ -105,14 +97,8 @@ namespace com.github.TheCSUser.Shared.Settings
             }
         }
 
-        INotifyPropertyChanged ISettingsReader.Load() => Load();
+        ISettings ISettingsReader.Load() => Load();
 
-        void ISettingsWriter.Save(INotifyPropertyChanged data) => Save(data as TSettingsDto);
-
-        #region Context
-        private readonly IModContext _context;
-
-        private ILogger Log => _context.Log;
-        #endregion
+        void ISettingsWriter.Save(ISettings data) => Save(data as TSettingsDto);
     }
 }

@@ -1,5 +1,4 @@
-﻿using com.github.TheCSUser.Shared.Logging;
-using com.github.TheCSUser.Shared.Properties;
+﻿using com.github.TheCSUser.Shared.Properties;
 using System;
 using System.Threading;
 
@@ -17,14 +16,15 @@ namespace com.github.TheCSUser.Shared.Common
 
         private TParams Parameters;
 
-        public SlidingDelayAction(Action<TParams> action, int delay = 2, int resolution = 1000)
+        public SlidingDelayAction(Action<TParams> action) : this(action, 2, 1000) { }
+        public SlidingDelayAction(Action<TParams> action, int delay, int resolution)
         {
             Action = action;
             Delay = delay;
             Resolution = resolution;
         }
 
-        public void Call(TParams parameters)
+        public void Invoke(TParams parameters)
         {
             if (_isDisposed) return;
             Parameters = parameters;
@@ -80,5 +80,7 @@ namespace com.github.TheCSUser.Shared.Common
             GC.SuppressFinalize(this);
         }
         #endregion
+
+        public static implicit operator Action<TParams>(SlidingDelayAction<TParams> action) => (TParams @params) => action.Invoke(@params);
     }
 }

@@ -1,14 +1,16 @@
 ﻿using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Logging;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization
 {
-    public class LanguageDictionary : Dictionary<string, string>, IWithContext, ILanguageDictionary
+    public sealed class LanguageDictionary : Dictionary<string, string>, ILanguageDictionary
     {
         public static readonly ILanguageDictionary None = new DummyLanguageDictionary();
+
+        private readonly IModContext _context;
 
         public LanguageDictionary(IModContext context) : base()
         {
@@ -19,15 +21,18 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             _context = context;
         }
 
-        public virtual string Translate(string phrase, params string[] values)
+        [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "Personal preference")]
+        public string Translate(string phrase, params string[] values)
         {
-            { if (TryGetValue(phrase, out var translatedPhrase)) return SubstituteTokens(translatedPhrase, values); }
-            { if (LocaleLibrary.Get().TryGetValue(phrase, out var translatedPhrase)) return SubstituteTokens(translatedPhrase, values); }
+            string translatedPhrase;
+            if (TryGetValue(phrase, out translatedPhrase)) return SubstituteTokens(translatedPhrase, values);
+            if (_context.LocaleLibrary.Get().TryGetValue(phrase, out translatedPhrase)) return SubstituteTokens(translatedPhrase, values);
+            if (_context.LocaleLibrary.FallbackLanguage.TryGetValue(phrase, out translatedPhrase)) return SubstituteTokens(translatedPhrase, values);
 
             return phrase;
         }
 
-        protected string SubstituteTokens(string text, params string[] values)
+        private string SubstituteTokens(string text, params string[] values)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             if (values is null || values.Length == 0) return text;
@@ -38,18 +43,6 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             }
             return result;
         }
-
-        #region Context
-        private readonly IModContext _context;
-
-        protected IMod Mod => _context.Mod;
-        protected IPatcher Patcher => _context.Patcher;
-        protected ILogger Log => _context.Log;
-        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
-        protected ILocaleManager LocaleManager => _context.LocaleManager;
-
-        public IModContext Context => _context;
-        #endregion
 
         #region Dummy
         private class DummyLanguageDictionary : DummyCollection<KeyValuePair<string, string>>, ILanguageDictionary
@@ -95,7 +88,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             public IEnumerator<T> GetEnumerator() => Enumerable.Empty<T>().GetEnumerator();
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        } 
+        }
         #endregion
     }
 }

@@ -1,29 +1,25 @@
 ﻿using ColossalFramework;
 using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Containers;
-using com.github.TheCSUser.Shared.Logging;
-using com.github.TheCSUser.Shared.UserInterface.Localization;
 using ICities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace com.github.TheCSUser.Shared.EntryPoints
 {
-    internal class LevelEntryPoint : IScriptContainer, IDisposableEx, IManagedLifecycle
+    internal class LevelEntryPoint : WithContext, IScriptContainer, IDisposableEx, IManagedLifecycle
     {
         private readonly Cached<ILoading> _loadingManager = new Cached<ILoading>(() => Singleton<SimulationManager>.exists ? Singleton<SimulationManager>.instance.m_ManagersWrapper.loading : null);
         protected ApplicationMode CurrentMode => _loadingManager.Value is null ? ApplicationMode.MainMenu : _loadingManager.Value.currentMode.ToApplicationMode();
 
         protected readonly ApplicationMode RequiredMode;
 
-        public LevelEntryPoint(IModContext context, ApplicationMode mode)
+        public LevelEntryPoint(IModContext context, ApplicationMode mode):base(context)
         {
-            _context = context;
             RequiredMode = mode;
-            _lifecycleManager = new LifecycleManager(context, this);
+            _lifecycleManager = new LifecycleManager(this);
         }
 
         protected virtual void OnEnable()
@@ -76,16 +72,6 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             OnDisable();
         }
 
-        #region Context
-        private readonly IModContext _context;
-
-        protected IMod Mod => _context.Mod;
-        protected IPatcher Patcher => _context.Patcher;
-        protected ILogger Log => _context.Log;
-        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
-        protected ILocaleManager LocaleManager => _context.LocaleManager;
-        #endregion
-
         #region Disposable
         public bool IsDisposed { get; private set; }
 
@@ -134,11 +120,11 @@ namespace com.github.TheCSUser.Shared.EntryPoints
         private readonly IInitializable _lifecycleManager;
         public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private class LifecycleManager : LifecycleManagerBase
+        private class LifecycleManager : Common.LifecycleManager
         {
             private readonly LevelEntryPoint _parent;
 
-            public LifecycleManager(IModContext context, LevelEntryPoint parent) : base(context)
+            public LifecycleManager(LevelEntryPoint parent) : base(parent.Context)
             {
                 _parent = parent;
             }
@@ -147,9 +133,7 @@ namespace com.github.TheCSUser.Shared.EntryPoints
             {
                 Singleton<LoadingManager>.instance.m_levelLoaded += _parent.LevelLoadedHandler;
                 Singleton<LoadingManager>.instance.m_levelPreUnloaded += _parent.LevelPreUnloadedHandler;
-                Mod.Initialized += ModInitializedHandler;
-                Mod.Terminating += ModTerminatingHandler;
-
+                
                 foreach (var script in _parent.Scripts)
                 {
                     if (script is null || script.IsDisposed) continue;
@@ -164,12 +148,14 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                         Log.Error($"{GetType().Name}.{nameof(OnInitialize)} call to {nameof(lifecycleManager)}.{nameof(IInitializable.Initialize)} failed", e);
                     }
                 }
+                _parent.OnEnable();
 
                 return true;
             }
 
             protected override bool OnTerminate()
             {
+                _parent.OnDisable();
                 foreach (var script in ((IEnumerable<ScriptBase>)_parent.Scripts).Reverse())
                 {
                     if (script is null || script.IsDisposed) continue;
@@ -185,15 +171,10 @@ namespace com.github.TheCSUser.Shared.EntryPoints
                     }
                 }
 
-                Mod.Terminating -= ModTerminatingHandler;
-                Mod.Initialized -= ModInitializedHandler;
                 Singleton<LoadingManager>.instance.m_levelLoaded -= _parent.LevelLoadedHandler;
                 Singleton<LoadingManager>.instance.m_levelPreUnloaded -= _parent.LevelPreUnloadedHandler;
                 return true;
             }
-
-            protected void ModInitializedHandler(object obj) => _parent.OnEnable();
-            protected void ModTerminatingHandler(object obj) => _parent.OnDisable();
         }
         #endregion
     }

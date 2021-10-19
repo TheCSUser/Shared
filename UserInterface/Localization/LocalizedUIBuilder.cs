@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization
 {
-    public sealed class LocalizedUIBuilder : ILocalizedUIBuilder, IDisposableContainer, IWithContext
+    public sealed class LocalizedUIBuilder : WithContext, ILocalizedUIBuilder, IDisposableContainer
     {
         private readonly UIComponent _root;
         public UIComponent Root
@@ -23,15 +23,13 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             }
         }
 
-        internal LocalizedUIBuilder(IModContext context, UIHelper helper, DisposableContainer disposables)
+        internal LocalizedUIBuilder(IModContext context, UIHelper helper, DisposableContainer disposables) : base(context)
         {
-            _context = context;
             _root = (UIComponent)helper.GetField("m_Root");
             _disposables = disposables;
         }
-        internal LocalizedUIBuilder(IModContext context, UIComponent root, DisposableContainer disposables)
+        internal LocalizedUIBuilder(IModContext context, UIComponent root, DisposableContainer disposables) : base(context)
         {
-            _context = context;
             _root = root;
             _disposables = disposables;
         }
@@ -39,7 +37,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public LGroupComponent AddGroup(LocaleText text, float textScale = 1.0f, Color32? textColor = null)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = LGroupComponent.Create(_context, Root, _disposables);
+            var component = LGroupComponent.Create(Context, Root, _disposables);
             component.Text = text;
             component.TextScale = textScale;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -50,7 +48,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public LButtonComponent AddButton(LocaleText text, Action<IButton> onClick, float textScale = 1.0f, Color32? textColor = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = LButtonComponent.Create(_context, Root);
+            var component = LButtonComponent.Create(Context, Root);
             component.Text = text;
             component.TextScale = textScale;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -62,7 +60,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public LCheckBoxComponent AddCheckbox(LocaleText text, bool value, Action<ICheckbox, bool> onCheckedChanged, float textScale = 1.0f, Color32? textColor = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = LCheckBoxComponent.Create(_context, Root);
+            var component = LCheckBoxComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -75,7 +73,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public LDropDownComponent AddDropdown(LocaleText text, string[] options, int defaultSelection, Action<IDropDown, int> onSelectedIndexChanged, float textScale = 1.0f, Color32? textColor = null, Color32? color = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = LDropDownComponent.Create(_context, Root);
+            var component = LDropDownComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -90,7 +88,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public LLabelComponent AddLabel(LocaleText text, float textScale = 1.0f, Color32? textColor = null)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = LLabelComponent.Create(_context, Root);
+            var component = LLabelComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -100,7 +98,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public LSliderComponent AddSlider(LocaleText text, float minValue, float maxValue, float stepSize, float value, Action<ISlider, float> onValueChanged, float textScale = 1.0f, float width = 227.0f, Color32? textColor = null, Color32? color = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = LSliderComponent.Create(_context, Root);
+            var component = LSliderComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -118,16 +116,10 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         public SpaceComponent AddSpace(float height)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(LocalizedUIBuilder));
-            var component = SpaceComponent.Create(_context, Root);
+            var component = SpaceComponent.Create(Context, Root);
             component.Height = height;
             return component;
         }
-
-        #region Context
-        private readonly IModContext _context;
-
-        public IModContext Context => _context;
-        #endregion
 
         #region DisposableContainer
         private DisposableContainer _disposables;
@@ -160,7 +152,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
 
         #region LocalizedUIBuilder
         ILocalizedGroup ILocalizedUIBuilder.AddGroup(LocaleText text, float textScale, Color32? textColor)
-    => AddGroup(text, textScale, textColor);
+            => AddGroup(text, textScale, textColor);
         IButton ILocalizedUIBuilder.AddButton(LocaleText text, Action<IButton> eventCallback, float textScale, Color32? textColor, bool enabled)
             => AddButton(text, eventCallback, textScale, textColor, enabled);
         ICheckbox ILocalizedUIBuilder.AddCheckbox(LocaleText text, bool value, Action<ICheckbox, bool> eventCallback, float textScale, Color32? textColor, bool enabled)

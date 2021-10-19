@@ -1,5 +1,4 @@
 ﻿using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,14 +10,13 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Serialization
     using Library = Dictionary<string, ILanguageDictionary>;
     using static Path;
 
-    public sealed class LocaleReader
+    public sealed class LocaleReader : WithContext
     {
         private readonly XmlSerializer _serializer;
 
-        internal LocaleReader(IModContext context)
+        internal LocaleReader(IModContext context) : base(context)
         {
             _serializer = new XmlSerializer(typeof(LocaleFile));
-            _context = context;
         }
 
         public Library Load(string path)
@@ -43,7 +41,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Serialization
                     }
                     library.Add(
                         GetFileNameWithoutExtension(fileName).Split('.').Last().ToLower(),
-                        new LanguageDictionary(_context, file.ToDictionary(item => item.Name, item => item.Value)));
+                        new LanguageDictionary(Context, file.ToDictionary(item => item.Name, item => item.Value)));
                 }
                 return library;
             }
@@ -53,11 +51,5 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization.Serialization
                 return new Library();
             }
         }
-
-        #region Context
-        private readonly IModContext _context;
-
-        private ILogger Log => _context.Log;
-        #endregion
     }
 }

@@ -5,7 +5,7 @@ using System.Xml.Serialization;
 
 namespace com.github.TheCSUser.Shared.Settings
 {
-    public abstract class SettingsFile : INotifyPropertyChanged
+    public abstract class SettingsFile : ISettings
     {
         [XmlIgnore]
         public Counter VersionCounter = new Counter();

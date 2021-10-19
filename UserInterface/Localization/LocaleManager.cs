@@ -1,14 +1,10 @@
 ﻿using ColossalFramework;
 using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Logging;
 using System;
-using System.Collections.Generic;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization
 {
-    using LanguageDictionary = Dictionary<string, string>;
-
-    public sealed class LocaleManager : ILocaleManager, IManagedLifecycle
+    public sealed class LocaleManager : WithContext, ILocaleManager, IManagedLifecycle
     {
         public static ILocaleManager None = new DummyLocaleManager();
 
@@ -22,9 +18,8 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         private ILanguageDictionary _current;
         public ILanguageDictionary Current => _current ?? LocaleLibrary.Get();
 
-        internal LocaleManager(IModContext context)
+        internal LocaleManager(IModContext context) : base(context)
         {
-            _context = context;
             _lifecycleManager = new LocaleManagerLifecycleManager(context, this);
         }
 
@@ -52,13 +47,6 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             if (!(_event is null)) _event(key);
         }
 
-        #region Context
-        private readonly IModContext _context;
-
-        private ILogger Log => _context.Log;
-        private ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
-        #endregion
-
         #region Events handling
         private void OnEventUIComponentLocaleChanged()
         {
@@ -83,7 +71,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
         private readonly LocaleManagerLifecycleManager _lifecycleManager;
         public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private sealed class LocaleManagerLifecycleManager : LifecycleManagerBase
+        private sealed class LocaleManagerLifecycleManager : LifecycleManager
         {
             private readonly LocaleManager _localeManager;
 

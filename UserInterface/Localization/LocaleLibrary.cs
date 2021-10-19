@@ -6,7 +6,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
 {
     using Library = Dictionary<string, ILanguageDictionary>;
 
-    public sealed class LocaleLibrary : ILocaleLibrary, IManagedLifecycle
+    public sealed class LocaleLibrary : WithContext, ILocaleLibrary, IManagedLifecycle
     {
         public static readonly ILocaleLibrary None = new DummyLocaleLibrary();
 
@@ -17,22 +17,22 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             set => _availableLanguages = value ?? new Library();
         }
 
-        private ILanguageDictionary _defaultLanguage;
-        public ILanguageDictionary DefaultLanguage
+        private ILanguageDictionary _fallbackLanguage;
+        public ILanguageDictionary FallbackLanguage
         {
-            get => _defaultLanguage;
-            set => _defaultLanguage = value ?? new LanguageDictionary(_context);
+            get => _fallbackLanguage;
+            set => _fallbackLanguage = value ?? new LanguageDictionary(Context);
         }
 
-        internal LocaleLibrary(IModContext context, Func<Library> initLibrary, Func<ILanguageDictionary> initDefaultLanguage = null)
+        internal LocaleLibrary(IModContext context, Func<Library> initLibrary, Func<IModContext, ILanguageDictionary> initFallbackLanguage = null) : base(context)
         {
-            _context = context;
             _availableLanguages = new Library();
-            _defaultLanguage = new LanguageDictionary(context);
-            _lifecycleManager = new LocaleLibraryLifecycleManager(context, this, initLibrary, initDefaultLanguage);
+            _fallbackLanguage = new LanguageDictionary(context);
+            _lifecycleManager = new LocaleLibraryLifecycleManager(context, this, initLibrary, initFallbackLanguage);
         }
 
-        public ILanguageDictionary Get(string key = null)
+        public ILanguageDictionary Get() => Get(null);
+        public ILanguageDictionary Get(string key)
         {
             var targetKey = string.IsNullOrEmpty(key) ? LocaleConstants.DEFAULT_LANGUAGE_KEY : key;
             if (!(AvailableLanguages is null) && AvailableLanguages.TryGetValue(targetKey, out var dictionary))
@@ -41,36 +41,32 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             }
             else
             {
-                return DefaultLanguage;
+                return FallbackLanguage;
             }
         }
-
-        #region Context
-        private readonly IModContext _context;
-        #endregion
 
         #region Lifecycle
         private readonly LocaleLibraryLifecycleManager _lifecycleManager;
         public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private sealed class LocaleLibraryLifecycleManager : LifecycleManagerBase
+        private sealed class LocaleLibraryLifecycleManager : LifecycleManager
         {
             private readonly LocaleLibrary _library;
             private readonly Func<Library> _initLibrary;
-            private readonly Func<ILanguageDictionary> _initDefaultLanguage;
+            private readonly Func<IModContext, ILanguageDictionary> _initFallbackLanguage;
 
-            public LocaleLibraryLifecycleManager(IModContext context, LocaleLibrary library, Func<Library> initLibrary, Func<ILanguageDictionary> initDefaultLanguage = null) : base(context)
+            public LocaleLibraryLifecycleManager(IModContext context, LocaleLibrary library, Func<Library> initLibrary, Func<IModContext, ILanguageDictionary> initFallbackLanguage = null) : base(context)
             {
                 _library = library;
                 _initLibrary = initLibrary;
-                _initDefaultLanguage = initDefaultLanguage;
+                _initFallbackLanguage = initFallbackLanguage;
             }
 
             protected override bool OnInitialize()
             {
                 if (_library is null) return false;
                 if (!(_initLibrary is null)) _library.AvailableLanguages = _initLibrary();
-                if (!(_initDefaultLanguage is null)) _library.DefaultLanguage = _initDefaultLanguage();
+                if (!(_initFallbackLanguage is null)) _library.FallbackLanguage = _initFallbackLanguage(Context);
                 return true;
             }
             protected override bool OnTerminate() => true;
@@ -90,6 +86,13 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
                 }
             }
 
+            public ILanguageDictionary FallbackLanguage
+            {
+                get => LanguageDictionary.None;
+                set { }
+            }
+
+            public ILanguageDictionary Get() => LanguageDictionary.None;
             public ILanguageDictionary Get(string key) => LanguageDictionary.None;
         }
         #endregion

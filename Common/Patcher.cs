@@ -1,12 +1,11 @@
-﻿using com.github.TheCSUser.Shared.Logging;
-using com.github.TheCSUser.Shared.Properties;
+﻿using com.github.TheCSUser.Shared.Properties;
 using HarmonyLib;
 using System.Collections.Generic;
 using static CitiesHarmony.API.HarmonyHelper;
 
 namespace com.github.TheCSUser.Shared.Common
 {
-    public sealed class Patcher : IPatcher, IManagedLifecycle
+    public sealed class Patcher : WithContext, IPatcher, IManagedLifecycle
     {
         public static IPatcher None = new DummyPatcher();
         internal static Patcher Shared = new Patcher(LibProperties.SharedContext, LibProperties.HarmonyId);
@@ -15,9 +14,8 @@ namespace com.github.TheCSUser.Shared.Common
 
         public string HarmonyId { get; }
 
-        internal Patcher(IModContext context, string harmonyId)
+        internal Patcher(IModContext context, string harmonyId) : base(context)
         {
-            _context = context;
             HarmonyId = harmonyId;
             _lifecycleManager = new PatcherLifecycleManager(context, this);
         }
@@ -80,11 +78,11 @@ namespace com.github.TheCSUser.Shared.Common
             {
                 try
                 {
-                    if (patch.IsPatchApplied) return;
+                    if (patch.IsApplied) return;
 #if DEV
                     Log.Info($"{nameof(Patcher)}.{nameof(Patch)} Harmony ready, patching {patch.PatchId}.");
 #endif
-                    patch.IsPatchApplied = true;
+                    patch.IsApplied = true;
                     var harmony = new Harmony(HarmonyId);
                     harmony.Patch(target,
                         prefix is null ? null : new HarmonyMethod(prefix),
@@ -96,13 +94,17 @@ namespace com.github.TheCSUser.Shared.Common
                 catch
                 {
                     Log.Error($"{nameof(Patcher)}.{nameof(Patch)} {nameof(DoOnHarmonyReady)} for {patch.PatchId} failed");
-                    patch.IsPatchApplied = false;
+                    patch.IsApplied = false;
                     throw;
                 }
             });
         }
-
-        public void Unpatch(PatchData patch, bool force = false)
+        public void Patch(IEnumerable<PatchData> patches)
+        {
+            foreach (var patch in patches) Patch(patch);
+        }
+        public void Unpatch(PatchData patch) => Unpatch(patch, false);
+        public void Unpatch(PatchData patch, bool force)
         {
             if (patch is null)
             {
@@ -133,7 +135,7 @@ namespace com.github.TheCSUser.Shared.Common
 #if DEV
                 Log.Info($"{nameof(Patcher)}.{nameof(Unpatch)} patch {patch.PatchId} not applied.");
 #endif
-                patch.IsPatchApplied = false;
+                patch.IsApplied = false;
                 return;
             }
 #if DEV
@@ -148,11 +150,11 @@ namespace com.github.TheCSUser.Shared.Common
             {
                 try
                 {
-                    if (!patch.IsPatchApplied) return;
+                    if (!patch.IsApplied) return;
 #if DEV
                     Log.Info($"{nameof(Patcher)}.{nameof(Unpatch)} Harmony ready, removing patch {patch.PatchId}.");
 #endif
-                    patch.IsPatchApplied = false;
+                    patch.IsApplied = false;
                     var harmony = new Harmony(HarmonyId);
                     if (!(prefix is null)) harmony.Unpatch(target, prefix);
                     if (!(postfix is null)) harmony.Unpatch(target, postfix);
@@ -167,7 +169,11 @@ namespace com.github.TheCSUser.Shared.Common
                 }
             });
         }
-
+        public void Unpatch(IEnumerable<PatchData> patches) => Unpatch(patches, false);
+        public void Unpatch(IEnumerable<PatchData> patches, bool force = false)
+        {
+            foreach (var patch in patches) Unpatch(patch, force);
+        }
         public void UnpatchAll()
         {
 #if DEV
@@ -192,18 +198,11 @@ namespace com.github.TheCSUser.Shared.Common
             });
         }
 
-        #region Context
-        private readonly IModContext _context;
-
-        private IMod Mod => _context.Mod;
-        private ILogger Log => _context.Log;
-        #endregion
-
         #region Lifecycle
         private readonly IInitializable _lifecycleManager;
         public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private sealed class PatcherLifecycleManager : LifecycleManagerBase
+        private sealed class PatcherLifecycleManager : LifecycleManager
         {
             private readonly Patcher _patcher;
 
@@ -229,7 +228,10 @@ namespace com.github.TheCSUser.Shared.Common
             public IInitializable GetLifecycleManager() => LifecycleManager.None;
 
             public void Patch(PatchData patch) { }
+            public void Patch(IEnumerable<PatchData> patches) { }
             public void Unpatch(PatchData patch, bool force = false) { }
+            public void Unpatch(IEnumerable<PatchData> patches, bool force = false) { }
+
             public void UnpatchAll() { }
         }
         #endregion

@@ -18,8 +18,6 @@ namespace com.github.TheCSUser.Shared.Common
     public abstract class ModBase : IMod
     {
         public event Action<object, string> SettingsChanged;
-        public event Action<object> Initialized;
-        public event Action<object> Terminating;
 
         private DisposableContainer _uiDisposables;
         private readonly InitializableContainer _initializables;
@@ -27,66 +25,75 @@ namespace com.github.TheCSUser.Shared.Common
         public abstract string Name { get; }
         public abstract string Description { get; }
 
+        private bool _initialLoad = true;
+        public bool IsEnabled { get; private set; }
+
         public ModBase()
         {
-            _context = new ModContext(this);
+            SharedDependencies.Initialize();
+            PluginHelperProxy.OnPluginsValidated += OnPluginsValidated;
+
+            _context = new ModContext
+            {
+                Mod = this
+            };
+
+            _context
+            .Register(GetType(), this)
+            .Register(typeof(IMod), this);
+
             _initializables = new InitializableContainer(_context);
             _localeReader = new LocaleReader(_context);
             _entryPoints = new Dictionary<ApplicationMode, IScriptContainer>();
         }
+        ~ModBase()
+        {
+            try
+            {
+                PluginHelperProxy.OnPluginsValidated -= OnPluginsValidated;
+            }
+            catch { /* ignore */ }
+        }
 
         public void OnEnabled()
         {
-#if DEV
-            Log.Info($"{GetType().Name}.{nameof(OnEnabled)}");
-#endif
+            if (IsEnabled) return;
+            IsEnabled = true;
+            if (_initialLoad) return;
             try
             {
-                foreach (var item in _initializables)
-                    if (!(item is null)) item.Initialize();
-
-                try
-                {
-                    var handler = Initialized;
-                    if (!(handler is null)) handler(this);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"{GetType().Name}.{nameof(Initialized)} failed", ex);
-                }
+                OnEnable();
             }
             catch (Exception e)
             {
-                Log.Error($"{GetType().Name}.{nameof(OnEnabled)} failed", e);
+                Log.Error($"{GetType().Name}.{nameof(OnEnable)} failed", e);
+            }
+        }
+        public void OnPluginsValidated()
+        {
+            if (!_initialLoad) return;
+            _initialLoad = false;
+            if (!IsEnabled) return;
+            try
+            {
+                OnEnable();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"{GetType().Name}.{nameof(OnEnable)} failed", e);
             }
         }
         public void OnDisabled()
         {
-#if DEV
-            Log.Info($"{GetType().Name}.{nameof(OnDisabled)}");
-#endif            
+            if (!IsEnabled) return;
+            IsEnabled = false;
             try
             {
-                try
-                {
-                    var handler = Terminating;
-                    if (!(handler is null)) handler(this);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"{GetType().Name}.{nameof(Terminating)} failed", ex);
-                }
-
-                foreach (var item in ((IEnumerable<IInitializable>)_initializables).Reverse())
-                    if (!(item is null)) item.Terminate();
-
-                SettingsChanged = null;
-                Initialized = null;
-                Terminating = null;
+                OnDisable();
             }
             catch (Exception e)
             {
-                Log.Error($"{GetType().Name}.{nameof(OnDisabled)} failed", e);
+                Log.Error($"{GetType().Name}.{nameof(OnDisable)} failed", e);
             }
         }
         public void OnSettingsUI(UIHelperBase helper)
@@ -100,7 +107,7 @@ namespace com.github.TheCSUser.Shared.Common
 
                 if (helper is UIHelper concreteHelper)
                 {
-                    _uiDisposables = new DisposableContainer(_context);
+                    _uiDisposables = new DisposableContainer();
                     BuildSettingsUI(
                         _useLocalization
                         ? new BuilderSelection(new LocalizedUIBuilder(_context, concreteHelper, _uiDisposables))
@@ -118,15 +125,28 @@ namespace com.github.TheCSUser.Shared.Common
             }
         }
 
+        protected virtual void OnEnable()
+        {
+            foreach (var item in _initializables)
+                if (!(item is null)) item.Initialize();
+        }
+        protected virtual void OnDisable()
+        {
+            foreach (var item in ((IEnumerable<IInitializable>)_initializables).Reverse())
+                if (!(item is null)) item.Terminate();
+
+            SettingsChanged = null;
+        }
+
         protected abstract void BuildSettingsUI(BuilderSelection builder);
 
         #region Context
         private readonly ModContext _context;
         public IModContext Context => _context;
-        protected IPatcher Patcher => Context.Patcher;
-        protected ILogger Log => Context.Log;
-        protected ILocaleLibrary LocaleLibrary => Context.LocaleLibrary;
-        protected ILocaleManager LocaleManager => Context.LocaleManager;
+        protected IPatcher Patcher => _context.Patcher;
+        protected ILogger Log => _context.Log;
+        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
+        protected ILocaleManager LocaleManager => _context.LocaleManager;
         #endregion
 
         #region Use
@@ -138,13 +158,36 @@ namespace com.github.TheCSUser.Shared.Common
         }
         protected void Use(Action onInitialize) => _initializables.Add(onInitialize);
         protected void Use(Action onInitialize, Action onTerminate) => _initializables.Add(onInitialize, onTerminate);
+        protected void Use<TMod>(Action<TMod> onInitialize)
+            where TMod : ModBase
+        {
+            if (onInitialize is null) return;
+            Use(() => onInitialize(this as TMod));
+        }
+        protected void Use<TMod>(ICollection<Action<TMod>> actions)
+            where TMod : ModBase
+        {
+            if (actions is null) return;
+            foreach (var onInitialize in actions)
+                Use(onInitialize);
+        }
+        protected void Use<TMod>(Action<TMod> onInitialize, Action<TMod> onTerminate)
+            where TMod : ModBase
+        {
+            if (onInitialize is null && onTerminate is null) return;
+            Use(() => onInitialize(this as TMod), () => onTerminate(this as TMod));
+        }
         #endregion
 
         #region UseLogger
         protected void UseLogger(string path) => UseLogger(path, GetType().Assembly.GetName().Name);
         protected void UseLogger(string path, string name)
         {
-            _context.Log = new Log(path, name);
+            var log = new Log(path, name);
+            _context.Log = log;
+            _context
+            .Register(log)
+            .Register<ILogger>(log);
         }
         #endregion
 
@@ -157,18 +200,31 @@ namespace com.github.TheCSUser.Shared.Common
         protected void UseHarmony(string harmonyId)
         {
             Use(Common.Patcher.Shared);
-            _context.Patcher = Use(new Patcher(_context, harmonyId));
+            var patcher = Use(new Patcher(_context, harmonyId));
+            _context.Patcher = patcher;
+            _context
+            .Register(patcher)
+            .Register<IPatcher>(patcher);
         }
         #endregion
 
         #region UseLocalization
         private readonly LocaleReader _localeReader;
         private bool _useLocalization = false;
-        protected void UseLocalization(string localeFilesPath, Func<ILanguageDictionary> initDefaultLanguage = null) => UseLocalization(() => _localeReader.Load(localeFilesPath), initDefaultLanguage);
-        protected void UseLocalization(Func<Library> initLibrary, Func<ILanguageDictionary> initDefaultLanguage = null)
+        protected void UseLocalization(string localeFilesPath, Func<IModContext, ILanguageDictionary> initFallbackLanguage = null) => UseLocalization(() => _localeReader.Load(localeFilesPath), initFallbackLanguage);
+        protected void UseLocalization(Func<Library> initLibrary, Func<IModContext, ILanguageDictionary> initFallbackLanguage = null)
         {
-            _context.LocaleLibrary = Use(new LocaleLibrary(_context, initLibrary, initDefaultLanguage));
-            _context.LocaleManager = Use(new LocaleManager(_context));
+            var localeLibrary = Use(new LocaleLibrary(_context, initLibrary, initFallbackLanguage));
+            _context.LocaleLibrary = localeLibrary;
+            var localeManager = Use(new LocaleManager(_context));
+            _context.LocaleManager = localeManager;
+
+            _context
+            .Register(localeLibrary)
+            .Register<ILocaleLibrary>(localeLibrary)
+            .Register(localeManager)
+            .Register<ILocaleManager>(localeManager);
+
             _useLocalization = true;
         }
         #endregion
@@ -213,16 +269,21 @@ namespace com.github.TheCSUser.Shared.Common
 
         #region UseSettings
         private SettingsFile _settings;
+        protected SettingsFile Settings => _settings;
         private ISettingsReader _settingsReader;
         private ISettingsWriter _settingsWriter;
         private Counter _settingsVersion;
 #if DEV
         public Action LoadSettings;
 #endif
-        protected void UseSettings<TSettingsDto>(ISettingsReaderWriter<TSettingsDto> readerWriter, Action<TSettingsDto> onLoad = null)
-            where TSettingsDto : SettingsFile, new() => UseSettings(readerWriter, readerWriter, onLoad);
+        protected void UseSettings<TSettingsDto>(ISettingsReaderWriter<TSettingsDto> readerWriter)
+            where TSettingsDto : SettingsFile, new()
+        {
+            _context.Register(readerWriter);
+            UseSettings(readerWriter, readerWriter);
+        }
 
-        protected void UseSettings<TSettingsDto>(ISettingsReader<TSettingsDto> reader, ISettingsWriter<TSettingsDto> writer, Action<TSettingsDto> onLoad = null)
+        protected void UseSettings<TSettingsDto>(ISettingsReader<TSettingsDto> reader, ISettingsWriter<TSettingsDto> writer)
             where TSettingsDto : SettingsFile, new()
         {
             if (reader is null) throw new ArgumentNullException(nameof(reader));
@@ -230,6 +291,12 @@ namespace com.github.TheCSUser.Shared.Common
 
             _settingsReader = reader;
             _settingsWriter = writer;
+
+            _context
+            .Register(reader)
+            .Register(writer)
+            .Register(reader.GetType(), reader)
+            .Register(writer.GetType(), writer);
 
             void onTerminate()
             {
@@ -255,17 +322,9 @@ namespace com.github.TheCSUser.Shared.Common
                     }
                     settings.PropertyChanged += OnSettingsPropertyChanged;
                     _settings = settings;
-                }
-                if (!(onLoad is null))
-                {
-                    try
-                    {
-                        onLoad(settings);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error($"{GetType().Name}.{nameof(UseSettings)}.{nameof(onInitialize)}.{nameof(onLoad)} failed", e);
-                    }
+                    _context
+                    .Register(settings)
+                    .Register<SettingsFile>(settings);
                 }
                 try
                 {

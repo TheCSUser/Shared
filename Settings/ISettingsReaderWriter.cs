@@ -1,12 +1,10 @@
-﻿using System.ComponentModel;
-
-namespace com.github.TheCSUser.Shared.Settings
+﻿namespace com.github.TheCSUser.Shared.Settings
 {
     public interface ISettingsReader
     {
         string FileName { get; }
 
-        INotifyPropertyChanged Load();
+        ISettings Load();
     }
 
     public interface ISettingsWriter
@@ -14,22 +12,22 @@ namespace com.github.TheCSUser.Shared.Settings
         string FileName { get; }
 
         void Delete();
-        void Save(INotifyPropertyChanged data);
+        void Save(ISettings data);
     }
 
     public interface ISettingsReader<TSettingsDto> : ISettingsReader
-        where TSettingsDto : class, INotifyPropertyChanged
+        where TSettingsDto : class, ISettings
     {
         new TSettingsDto Load();
     }
 
     public interface ISettingsWriter<TSettingsDto> : ISettingsWriter
-        where TSettingsDto : class, INotifyPropertyChanged
+        where TSettingsDto : class, ISettings
     {
         void Save(TSettingsDto data);
     }
 
     public interface ISettingsReaderWriter<TSettingsDto> : ISettingsReader<TSettingsDto>, ISettingsWriter<TSettingsDto>
-        where TSettingsDto : class, INotifyPropertyChanged
+        where TSettingsDto : class, ISettings
     { }
 }

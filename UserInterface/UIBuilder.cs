@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace com.github.TheCSUser.Shared.UserInterface
 {
-    public sealed class UIBuilder : IUIBuilder, IDisposableContainer, IWithContext
+    public sealed class UIBuilder : WithContext, IUIBuilder, IDisposableContainer
     {
         private readonly UIComponent _root;
         public UIComponent Root
@@ -22,15 +22,13 @@ namespace com.github.TheCSUser.Shared.UserInterface
             }
         }
 
-        internal UIBuilder(IModContext context, UIHelper helper, DisposableContainer disposables)
+        internal UIBuilder(IModContext context, UIHelper helper, DisposableContainer disposables) : base(context)
         {
-            _context = context;
             _root = (UIComponent)helper.GetField("m_Root");
             _disposables = disposables;
         }
-        internal UIBuilder(IModContext context, UIComponent root, DisposableContainer disposables)
+        internal UIBuilder(IModContext context, UIComponent root, DisposableContainer disposables) : base(context)
         {
-            _context = context;
             _root = root;
             _disposables = disposables;
         }
@@ -38,7 +36,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public GroupComponent AddGroup(string text, float textScale = 1.0f, Color32? textColor = null)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = GroupComponent.Create(_context, Root, _disposables);
+            var component = GroupComponent.Create(Context, Root, _disposables);
             component.Text = text;
             component.TextScale = textScale;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -49,7 +47,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public ButtonComponent AddButton(string text, Action<IButton> onClick, float textScale = 1.0f, Color32? textColor = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = ButtonComponent.Create(_context, Root);
+            var component = ButtonComponent.Create(Context, Root);
             component.Text = text;
             component.TextScale = textScale;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -61,7 +59,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public CheckBoxComponent AddCheckbox(string text, bool value, Action<ICheckbox, bool> onCheckedChanged, float textScale = 1.0f, Color32? textColor = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = CheckBoxComponent.Create(_context, Root);
+            var component = CheckBoxComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -74,7 +72,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public DropDownComponent AddDropdown(string text, string[] options, int defaultSelection, Action<IDropDown, int> onSelectedIndexChanged, float textScale = 1.0f, Color32? textColor = null, Color32? color = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = DropDownComponent.Create(_context, Root);
+            var component = DropDownComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -89,7 +87,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public LabelComponent AddLabel(string text, float textScale = 1.0f, Color32? textColor = null)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = LabelComponent.Create(_context, Root);
+            var component = LabelComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -99,7 +97,7 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public SliderComponent AddSlider(string text, float minValue, float maxValue, float stepSize, float value, Action<ISlider, float> onValueChanged, float textScale = 1.0f, float width = 227.0f, Color32? textColor = null, Color32? color = null, bool enabled = true)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = SliderComponent.Create(_context, Root);
+            var component = SliderComponent.Create(Context, Root);
             component.TextScale = textScale;
             component.Text = text;
             if (textColor.HasValue) component.TextColor = textColor.Value;
@@ -117,16 +115,10 @@ namespace com.github.TheCSUser.Shared.UserInterface
         public SpaceComponent AddSpace(float height)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(UIBuilder));
-            var component = SpaceComponent.Create(_context, Root);
+            var component = SpaceComponent.Create(Context, Root);
             component.Height = height;
             return component;
         }
-
-        #region Context
-        private readonly IModContext _context;
-
-        public IModContext Context => _context;
-        #endregion
 
         #region DisposableContainer
         private DisposableContainer _disposables;
@@ -174,4 +166,4 @@ namespace com.github.TheCSUser.Shared.UserInterface
             => AddSpace(height);
         #endregion
     }
-}   
+}

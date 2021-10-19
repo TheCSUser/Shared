@@ -7,7 +7,9 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
     public interface ILocaleLibrary
     {
         Library AvailableLanguages { get; }
+        ILanguageDictionary FallbackLanguage { get; set; }
 
-        ILanguageDictionary Get(string key = null);
+        ILanguageDictionary Get();
+        ILanguageDictionary Get(string key);
     }
 }

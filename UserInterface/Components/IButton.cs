@@ -1,5 +1,4 @@
-﻿using ColossalFramework.UI;
-using System;
+﻿using System;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Components
 {

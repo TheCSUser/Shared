@@ -1,7 +1,6 @@
 ﻿using ColossalFramework.UI;
 using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.UserInterface.Components;
-using System;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Localization.Components
 {

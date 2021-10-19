@@ -2,8 +2,6 @@
 {
     public interface IUpdatable
     {
-        bool IsCurrent { get; }
-
         void Update();
     }
 

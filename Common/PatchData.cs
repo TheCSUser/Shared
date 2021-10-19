@@ -16,7 +16,7 @@ namespace com.github.TheCSUser.Shared.Common
         public readonly Action OnUnpatch;
         public readonly Action OnPatch;
 
-        public bool IsPatchApplied { get; set; }
+        public bool IsApplied { get; set; }
 
         public PatchData(
             string patchId,

@@ -1,5 +1,4 @@
-﻿using com.github.TheCSUser.Shared.UserInterface.Localization;
-using System;
+﻿using System;
 using System.Threading;
 using UnityEngine;
 
@@ -7,7 +6,7 @@ namespace com.github.TheCSUser.Shared.Common
 {
     using ILogger = Logging.ILogger;
 
-    public abstract class ScriptBase : IToggleable<bool>, IUpdatable<bool>, IErrorInfo, IDisposableEx, IManagedLifecycle, IWithContext
+    public abstract class ScriptBase : WithContext, IToggleable<bool>, IUpdatable<bool>, IErrorInfo, IDisposableEx, IManagedLifecycle
     {
         protected abstract string Name { get; }
 
@@ -15,24 +14,9 @@ namespace com.github.TheCSUser.Shared.Common
         protected abstract bool OnDisable();
         protected abstract bool OnUpdate();
 
-        public ScriptBase(IModContext context)
-        {
-            _context = context;
-        }
+        public ScriptBase(IModContext context) : base(context) { }
 
         public virtual IInitializable GetLifecycleManager() => LifecycleManager.None;
-
-        #region Context
-        private readonly IModContext _context;
-
-        protected IMod Mod => _context.Mod;
-        protected IPatcher Patcher => _context.Patcher;
-        protected ILogger Log => _context.Log;
-        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
-        protected ILocaleManager LocaleManager => _context.LocaleManager;
-
-        IModContext IWithContext.Context => _context;
-        #endregion
 
         #region Error
 #if DEV || PREVIEW
@@ -94,7 +78,7 @@ namespace com.github.TheCSUser.Shared.Common
                 catch (Exception e)
                 {
 
-                    Log.Error($"{GetType().Name}.{nameof(Dispose)} call to {nameof(LifecycleManagerBase.Terminate)} failed", e);
+                    Log.Error($"{GetType().Name}.{nameof(Dispose)} call to {nameof(LifecycleManager.Terminate)} failed", e);
                 }
 #else
                 catch { /*ignore*/ }
@@ -178,17 +162,11 @@ namespace com.github.TheCSUser.Shared.Common
         #endregion
 
         #region Updatable
-        public virtual bool IsCurrent => false; //update always
-
         public virtual bool Update()
         {
             if (IsDisposed || IsError || !IsEnabled || !GetLifecycleManager().IsInitialized) return false;
-            if (IsCurrent) return true;
             try
             {
-#if DEV
-                Log.Info($"{GetType().Name} updating");
-#endif
                 return OnUpdate();
             }
             catch (Exception e)
@@ -204,8 +182,11 @@ namespace com.github.TheCSUser.Shared.Common
 
         #region Updater
         private GameObject UpdaterParent;
+        private ScriptUpdater Updater;
 
-        protected virtual void CreateUpdater()
+        protected virtual ScriptUpdater AddUpdaterComponent(GameObject parent) => parent.AddComponent<ScriptUpdater>();
+
+        private void CreateUpdater()
         {
             if (!(UpdaterParent is null)) DestroyUpdater();
 #if DEV
@@ -213,31 +194,43 @@ namespace com.github.TheCSUser.Shared.Common
 #endif
             var name = string.IsNullOrEmpty(Name) ? $"{GetType().Name}.{nameof(ScriptUpdater)}" : Name;
             var parent = new GameObject(name);
-            var updater = parent.AddComponent<ScriptUpdater>();
-            updater._parent = this;
-            updater._context = _context;
+            Updater = AddUpdaterComponent(parent);
+            Updater._parent = this;
+            Updater._context = Context;
         }
 
-        protected virtual void DestroyUpdater()
+        private void DestroyUpdater()
         {
 #if DEV
             Log.Info($"{GetType().Name}.{nameof(DestroyUpdater)} called");
 #endif
-            var toDestroy = UpdaterParent;
+            var updater = Updater;
+            Updater = null;
+            if (!(updater is null))
+            {
+                updater.enabled = false;
+                updater._parent = null;
+                updater._context = null;
+                UnityEngine.Object.Destroy(updater);
+            }
+
+            var parent = UpdaterParent;
             UpdaterParent = null;
-            if (!(toDestroy is null)) UnityEngine.Object.Destroy(toDestroy);
+            if (!(parent is null)) UnityEngine.Object.Destroy(parent);
         }
 
-        internal class ScriptUpdater : MonoBehaviour
+        public class ScriptUpdater : MonoBehaviour
         {
             internal ScriptBase _parent;
 
             #region Context
-            protected internal IModContext _context;
+            internal IModContext _context;
+            protected IModContext Context => _context ?? ModContext.None;
 
             protected ILogger Log => _context?.Log ?? Logging.Log.None;
             #endregion
 
+            #region MonoBehaviour
             public bool IsEnabled => !(_parent is null || _parent.UpdaterParent is null);
 
             public void Start()
@@ -250,16 +243,7 @@ namespace com.github.TheCSUser.Shared.Common
             public void Update()
             {
                 if (_parent is null) return;
-                if (_parent.IsCurrent) return;
-                try
-                {
-                    _parent.OnUpdate();
-                }
-                catch (Exception e)
-                {
-                    _parent.IncreaseErrorCount();
-                    Log.Error($"{GetType().Name}.{nameof(Update)} failed", e);
-                }
+                OnUpdate();
             }
 
             public void OnDestroy()
@@ -271,6 +255,20 @@ namespace com.github.TheCSUser.Shared.Common
                 var toDestroy = _parent.UpdaterParent;
                 _parent.UpdaterParent = null;
                 if (!(toDestroy is null)) Destroy(toDestroy);
+            } 
+            #endregion
+
+            protected virtual void OnUpdate()
+            {
+                try
+                {
+                    _parent.OnUpdate();
+                }
+                catch (Exception e)
+                {
+                    _parent.IncreaseErrorCount();
+                    Log.Error($"{GetType().Name}.{nameof(Update)} failed", e);
+                }
             }
         }
         #endregion

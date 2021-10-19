@@ -1,11 +1,12 @@
-﻿using System;
+﻿using ColossalFramework.UI;
 using com.github.TheCSUser.Shared.Common;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
-using ColossalFramework.UI;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Components.Base
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Personal preference")]
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Personal preference")]
     public abstract class TextComponent : Component, ITextComponent
     {
         private readonly UITextComponent _component;

@@ -1,6 +1,5 @@
 ﻿using ColossalFramework.UI;
 using com.github.TheCSUser.Shared.Common;
-using com.github.TheCSUser.Shared.Logging;
 using com.github.TheCSUser.Shared.UserInterface.Components.Base;
 using System;
 using UnityEngine;

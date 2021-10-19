@@ -3,19 +3,16 @@ using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Containers;
 using System.Collections.Generic;
 using System.Collections;
-using com.github.TheCSUser.Shared.Logging;
-using com.github.TheCSUser.Shared.UserInterface.Localization;
 
 namespace com.github.TheCSUser.Shared.UserInterface.Components.Base
 {
-    public abstract class Component : IDisposableEx, IComponent, IWithContext
+    public abstract class Component : WithContext, IDisposableEx, IComponent
     {
         protected readonly DisposableContainer Styles;
 
-        protected Component(IModContext context)
+        protected Component(IModContext context) : base(context)
         {
-            _context = context;
-            Styles = new DisposableContainer(context);
+            Styles = new DisposableContainer();
         }
 
         public T ApplyStyle<T>(Func<T, IDisposable> style)
@@ -37,18 +34,6 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components.Base
             style(derived);
             return derived;
         }
-
-        #region Context
-        protected readonly IModContext _context;
-
-        protected IMod Mod => _context.Mod;
-        protected IPatcher Patcher => _context.Patcher;
-        protected ILogger Log => _context.Log;
-        protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
-        protected ILocaleManager LocaleManager => _context.LocaleManager;
-
-        public IModContext Context => _context;
-        #endregion
 
         #region Disposable
         private bool _isDisposed;

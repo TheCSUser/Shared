@@ -7,16 +7,7 @@ namespace com.github.TheCSUser.Shared.Containers
 {
     public sealed class DisposableContainer : List<IDisposable>, IDisposableEx, IDisposableContainer
     {
-        public DisposableContainer(IModContext context) : base()
-        {
-            _context = context;
-        }
-
-        #region Context
-        private readonly IModContext _context;
-
-        private ILogger Log => _context.Log;
-        #endregion
+        public DisposableContainer() : base() { }
 
         #region Disposable
         private bool _isDisposed;
@@ -38,7 +29,7 @@ namespace com.github.TheCSUser.Shared.Containers
                         catch (Exception e)
                         {
 
-                            Log.Error($"{nameof(DisposableContainer)}{nameof(Dispose)} failed", e);
+                            Log.Shared.Error($"{nameof(DisposableContainer)}{nameof(Dispose)} failed", e);
                         }
 #else
                         catch { /*ignore*/ }
