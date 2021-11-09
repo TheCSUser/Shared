@@ -21,30 +21,41 @@ namespace com.github.TheCSUser.Shared.Common
 
         private DisposableContainer _uiDisposables;
         private readonly InitializableContainer _initializables;
+        private readonly List<Action> _onceInitializables;
 
         public abstract string Name { get; }
         public abstract string Description { get; }
 
         private bool _initialLoad = true;
+        private bool _useLateInit = false;
         public bool IsEnabled { get; private set; }
 
         public ModBase()
         {
-            SharedDependencies.Initialize();
-            PluginHelperProxy.OnPluginsValidated += OnPluginsValidated;
-
-            _context = new ModContext
+            try
             {
-                Mod = this
-            };
+                SharedDependencies.Initialize();
+                PluginHelperProxy.OnPluginsValidated += OnPluginsValidated;
 
-            _context
-            .Register(GetType(), this)
-            .Register(typeof(IMod), this);
+                _context = new ModContext
+                {
+                    Mod = this
+                };
 
-            _initializables = new InitializableContainer(_context);
-            _localeReader = new LocaleReader(_context);
-            _entryPoints = new Dictionary<ApplicationMode, IScriptContainer>();
+                _context
+                .Register(GetType(), this)
+                .Register(typeof(IMod), this);
+
+                _initializables = new InitializableContainer(_context);
+                _onceInitializables = new List<Action>();
+                _localeReader = new LocaleReader(_context);
+                _entryPoints = new Dictionary<ApplicationMode, IScriptContainer>();
+            }
+            catch (Exception e)
+            {
+                Logging.Log.Shared.Error($"{GetType().Name}.{nameof(ModBase)}.Constructor failed", e);
+                throw;
+            }
         }
         ~ModBase()
         {
@@ -59,7 +70,7 @@ namespace com.github.TheCSUser.Shared.Common
         {
             if (IsEnabled) return;
             IsEnabled = true;
-            if (_initialLoad) return;
+            if (_useLateInit && _initialLoad) return;
             try
             {
                 OnEnable();
@@ -71,7 +82,7 @@ namespace com.github.TheCSUser.Shared.Common
         }
         public void OnPluginsValidated()
         {
-            if (!_initialLoad) return;
+            if (!_useLateInit || !_initialLoad) return;
             _initialLoad = false;
             if (!IsEnabled) return;
             try
@@ -127,6 +138,13 @@ namespace com.github.TheCSUser.Shared.Common
 
         protected virtual void OnEnable()
         {
+            if (!(_onceInitializables is null) && _onceInitializables.Count > 0)
+            {
+                foreach (var item in _onceInitializables)
+                    if (!(item is null)) item();
+                _onceInitializables.Clear();
+            }
+
             foreach (var item in _initializables)
                 if (!(item is null)) item.Initialize();
         }
@@ -147,6 +165,31 @@ namespace com.github.TheCSUser.Shared.Common
         protected ILogger Log => _context.Log;
         protected ILocaleLibrary LocaleLibrary => _context.LocaleLibrary;
         protected ILocaleManager LocaleManager => _context.LocaleManager;
+        #endregion
+
+        protected void UseLateInit() => _useLateInit = true;
+
+        #region UseOnce
+        protected void UseOnce(IInitializable obj) => _onceInitializables.Add(obj.Initialize);
+        protected T UseOnce<T>(T obj) where T : IManagedLifecycle
+        {
+            _onceInitializables.Add(obj.GetLifecycleManager().Initialize);
+            return obj;
+        }
+        protected void UseOnce(Action onInitialize) => _onceInitializables.Add(onInitialize);
+        protected void UseOnce<TMod>(Action<TMod> onInitialize)
+            where TMod : ModBase
+        {
+            if (onInitialize is null) return;
+            UseOnce(() => onInitialize(this as TMod));
+        }
+        protected void UseOnce<TMod>(ICollection<Action<TMod>> actions)
+            where TMod : ModBase
+        {
+            if (actions is null) return;
+            foreach (var onInitialize in actions)
+                UseOnce(onInitialize);
+        }
         #endregion
 
         #region Use
@@ -197,14 +240,14 @@ namespace com.github.TheCSUser.Shared.Common
             var assemblyName = GetType().Assembly.GetName();
             UseHarmony($"{assemblyName.Name} {assemblyName.Version} {Guid.NewGuid()}");
         }
-        protected void UseHarmony(string harmonyId)
+        protected Patcher UseHarmony(string harmonyId)
         {
-            Use(Common.Patcher.Shared);
             var patcher = Use(new Patcher(_context, harmonyId));
             _context.Patcher = patcher;
             _context
             .Register(patcher)
             .Register<IPatcher>(patcher);
+            return patcher;
         }
         #endregion
 

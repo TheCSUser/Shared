@@ -1,5 +1,6 @@
 ﻿using com.github.TheCSUser.Shared.Properties;
 using HarmonyLib;
+using System;
 using System.Collections.Generic;
 using static CitiesHarmony.API.HarmonyHelper;
 
@@ -202,7 +203,7 @@ namespace com.github.TheCSUser.Shared.Common
         private readonly IInitializable _lifecycleManager;
         public IInitializable GetLifecycleManager() => _lifecycleManager;
 
-        private sealed class PatcherLifecycleManager : LifecycleManager
+        private sealed class PatcherLifecycleManager : WithContext, IInitializable
         {
             private readonly Patcher _patcher;
 
@@ -211,11 +212,24 @@ namespace com.github.TheCSUser.Shared.Common
                 _patcher = patcher;
             }
 
-            protected override bool OnInitialize() => true;
-            protected override bool OnTerminate()
+            private int _usageCount;
+            public bool IsInitialized => _usageCount > 0;
+
+            public void Initialize()
             {
-                _patcher.UnpatchAll();
-                return true;
+                _usageCount++;
+            }
+            public void Terminate()
+            {
+                if (--_usageCount > 0) return;
+                try
+                {
+                    _patcher.UnpatchAll();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"{nameof(PatcherLifecycleManager)}.{nameof(Terminate)} failed", e);
+                }
             }
         }
         #endregion
