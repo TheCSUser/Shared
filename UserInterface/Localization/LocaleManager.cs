@@ -15,6 +15,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
             : "";
         public bool UsingGameLanguage { get; private set; }
 
+        private string _currentKey;
         private ILanguageDictionary _current;
         public ILanguageDictionary Current => _current ?? LocaleLibrary.Get();
 
@@ -28,23 +29,24 @@ namespace com.github.TheCSUser.Shared.UserInterface.Localization
 #if DEV || PREVIEW
             Log.Info($"{nameof(LocaleManager)}.{nameof(ChangeTo)} setting language to {key}");
 #endif
-            var language = LocaleLibrary.Get(key);
-            _current = language;
             UsingGameLanguage = false;
-            var _event = LanguageChanged;
-            if (!(_event is null)) _event(key);
+            ChangeLanguage(key);
         }
         public void ChangeToGameLanguage()
         {
 #if DEV
             Log.Info($"{nameof(LocaleManager)}.{nameof(ChangeToGameLanguage)} setting language to game language");
 #endif
-            var key = GameLanguage;
-            var language = LocaleLibrary.Get(key);
-            _current = language;
             UsingGameLanguage = true;
-            var _event = LanguageChanged;
-            if (!(_event is null)) _event(key);
+            ChangeLanguage(GameLanguage);
+        }
+        private void ChangeLanguage(string key)
+        {
+            if (_currentKey == key) return;
+            _currentKey = key;
+            _current = LocaleLibrary.Get(key);
+            var handler = LanguageChanged;
+            if (!(handler is null)) handler(key);
         }
 
         #region Events handling
