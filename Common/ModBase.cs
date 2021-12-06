@@ -1,4 +1,6 @@
-﻿using com.github.TheCSUser.Shared.Containers;
+﻿using ColossalFramework;
+using ColossalFramework.Plugins;
+using com.github.TheCSUser.Shared.Containers;
 using com.github.TheCSUser.Shared.EntryPoints;
 using com.github.TheCSUser.Shared.Logging;
 using com.github.TheCSUser.Shared.Settings;
@@ -14,6 +16,7 @@ using System.Linq;
 namespace com.github.TheCSUser.Shared.Common
 {
     using Library = Dictionary<string, ILanguageDictionary>;
+    using SettingsFile = Settings.SettingsFile;
 
     public abstract class ModBase : IMod
     {
@@ -26,9 +29,26 @@ namespace com.github.TheCSUser.Shared.Common
         public abstract string Name { get; }
         public abstract string Description { get; }
 
-        private bool _initialLoad = true;
         private bool _useLateInit = false;
         public bool IsEnabled { get; private set; }
+        protected bool IsInitialLoad
+        {
+            get
+            {
+                try
+                {
+#if DEV
+                    Log.Info($"{GetType().Name}.{nameof(IsInitialLoad)} Singleton<LoadingManager>.exists: {Singleton<LoadingManager>.exists}");
+#endif
+                    return !Singleton<LoadingManager>.exists;
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"{GetType().Name}.{nameof(IsInitialLoad)} failed", e);
+                    return false;
+                }
+            }
+        }
 
         public ModBase()
         {
@@ -50,6 +70,8 @@ namespace com.github.TheCSUser.Shared.Common
                 _onceInitializables = new List<Action>();
                 _localeReader = new LocaleReader(_context);
                 _entryPoints = new Dictionary<ApplicationMode, IScriptContainer>();
+
+                _context.Register(_localeReader);
             }
             catch (Exception e)
             {
@@ -68,11 +90,14 @@ namespace com.github.TheCSUser.Shared.Common
 
         public void OnEnabled()
         {
-            if (IsEnabled) return;
-            IsEnabled = true;
-            if (_useLateInit && _initialLoad) return;
             try
             {
+#if DEV
+                Log.Info($"{GetType().Name}.{nameof(OnEnabled)} called");
+#endif
+                if (IsEnabled) return;
+                IsEnabled = true;
+                if (_useLateInit && IsInitialLoad && !PluginHelperProxy.PluginsValidated) return;
                 OnEnable();
             }
             catch (Exception e)
@@ -82,11 +107,13 @@ namespace com.github.TheCSUser.Shared.Common
         }
         public void OnPluginsValidated()
         {
-            if (!_useLateInit || !_initialLoad) return;
-            _initialLoad = false;
-            if (!IsEnabled) return;
             try
             {
+#if DEV
+                Log.Info($"{GetType().Name}.{nameof(OnPluginsValidated)} called");
+#endif
+                if (!_useLateInit) return;
+                if (!IsEnabled) return;
                 OnEnable();
             }
             catch (Exception e)
@@ -138,18 +165,30 @@ namespace com.github.TheCSUser.Shared.Common
 
         protected virtual void OnEnable()
         {
+#if DEV
+            Log.Info($"{GetType().Name}.{nameof(OnEnable)} called");
+#endif
             if (!(_onceInitializables is null) && _onceInitializables.Count > 0)
             {
+#if DEV
+                Log.Info($"{GetType().Name}.{nameof(OnEnable)} running _onceInitializables");
+#endif
                 foreach (var item in _onceInitializables)
                     if (!(item is null)) item();
                 _onceInitializables.Clear();
             }
-
+#if DEV
+            Log.Info($"{GetType().Name}.{nameof(OnEnable)} running _initializables Initialize actions");
+#endif
             foreach (var item in _initializables)
                 if (!(item is null)) item.Initialize();
         }
         protected virtual void OnDisable()
         {
+#if DEV
+            Log.Info($"{GetType().Name}.{nameof(OnDisable)} called");
+            Log.Info($"{GetType().Name}.{nameof(OnDisable)} running _initializables Terminate actions");
+#endif
             foreach (var item in ((IEnumerable<IInitializable>)_initializables).Reverse())
                 if (!(item is null)) item.Terminate();
 
