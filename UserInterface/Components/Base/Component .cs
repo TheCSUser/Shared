@@ -18,7 +18,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components.Base
         public T ApplyStyle<T>(Func<T, IDisposable> style)
             where T : IComponent, IWithContext
         {
-            if (IsDisposed) throw new ObjectDisposedException(nameof(ButtonComponent));
+            if (IsDisposed) throw new ObjectDisposedException(GetType().Name);
             if (!(this is T derived)) throw new ArgumentException($"{GetType().Name} is not castable to {typeof(T).Name}", nameof(style), null);
             if (style is null) return derived;
             var cleanup = style(derived);
@@ -28,7 +28,7 @@ namespace com.github.TheCSUser.Shared.UserInterface.Components.Base
         public T ApplyStyle<T>(Action<T> style)
             where T : IComponent, IWithContext
         {
-            if (IsDisposed) throw new ObjectDisposedException(nameof(ButtonComponent));
+            if (IsDisposed) throw new ObjectDisposedException(GetType().Name);
             if (!(this is T derived)) throw new ArgumentException($"{GetType().Name} is not castable to {typeof(T).Name}", nameof(style), null);
             if (style is null) return derived;
             style(derived);

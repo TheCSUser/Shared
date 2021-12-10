@@ -7,7 +7,7 @@ namespace com.github.TheCSUser.Shared.Common
         public static readonly IMod None = new DummyMod();
 
         #region Dummy
-        private class DummyMod : IMod
+        private sealed class DummyMod : IMod
         {
             public IModContext Context => ModContext.None;
 

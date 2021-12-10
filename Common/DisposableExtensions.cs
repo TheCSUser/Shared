@@ -9,7 +9,7 @@ namespace com.github.TheCSUser.Shared.Common
             return new ActionOnDispose(action);
         }
 
-        private class ActionOnDispose : IDisposable
+        private sealed class ActionOnDispose : IDisposable
         {
             private Action _action;
 

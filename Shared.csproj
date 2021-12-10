@@ -78,6 +78,7 @@
   <ItemGroup>
     <Compile Include="Common\ApplicationMode.cs" />
     <Compile Include="Common\PluginHelperProxy.cs" />
+    <Compile Include="Common\ReflectionExtensions.cs" />
     <Compile Include="Common\SharedDependencies.cs" />
     <Compile Include="Common\WithContext.cs" />
     <Compile Include="Containers\DependencyInjectionContainer.cs" />

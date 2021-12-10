@@ -18,7 +18,7 @@ namespace com.github.TheCSUser.Shared.Common
         {
             get
             {
-                if (!isValueCreated || currentAttempts >= _maxAttempts)
+                if (!isValueCreated && currentAttempts < _maxAttempts)
                 {
                     lock (padlock)
                     {
@@ -31,17 +31,6 @@ namespace com.github.TheCSUser.Shared.Common
                     }
                 }
                 return value;
-            }
-        }
-
-        public override bool IsValueCreated
-        {
-            get
-            {
-                lock (padlock)
-                {
-                    return isValueCreated || currentAttempts >= _maxAttempts;
-                }
             }
         }
 

@@ -58,5 +58,22 @@ namespace com.github.TheCSUser.Shared.Containers
             _instances.Clear();
             _facories.Clear();
         }
+
+        #region Dummy
+        protected abstract class DummyDependencyInjectionContainer : IDependencyInjectionContainer, IWithContext
+        {
+            protected abstract IModContext Context { get; }
+            IModContext IWithContext.Context => Context;
+
+            public IDependencyInjectionContainer Register<T>(Func<IModContext, T> factory) where T : class => this;
+            public IDependencyInjectionContainer Register<T>(Func<IModContext, T> factory, bool singleton) where T : class => this;
+            public IDependencyInjectionContainer Register<T>(T singletonInstance) where T : class => this;
+            public IDependencyInjectionContainer Register(Type type, Delegate factory) => this;
+            public IDependencyInjectionContainer Register(Type type, Delegate factory, bool singleton) => this;
+            public IDependencyInjectionContainer Register(Type type, object instance) => this;
+            public T Resolve<T>() where T : class => null;
+            public void Clear() { }
+        }
+        #endregion
     }
 }

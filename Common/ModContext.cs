@@ -1,7 +1,6 @@
 ﻿using com.github.TheCSUser.Shared.Containers;
 using com.github.TheCSUser.Shared.Logging;
 using com.github.TheCSUser.Shared.UserInterface.Localization;
-using System;
 
 namespace com.github.TheCSUser.Shared.Common
 {
@@ -72,7 +71,7 @@ namespace com.github.TheCSUser.Shared.Common
         }
 
         #region Dummy
-        private sealed class DummyModContext : IModContext
+        private sealed class DummyModContext : DummyDependencyInjectionContainer, IModContext
         {
             public ILocaleLibrary LocaleLibrary => UserInterface.Localization.LocaleLibrary.None;
             public ILocaleManager LocaleManager => UserInterface.Localization.LocaleManager.None;
@@ -80,14 +79,7 @@ namespace com.github.TheCSUser.Shared.Common
             public IMod Mod => Common.Mod.None;
             public IPatcher Patcher => Common.Patcher.None;
 
-            public IDependencyInjectionContainer Register<T>(Func<IModContext, T> factory) where T : class => this;
-            public IDependencyInjectionContainer Register<T>(Func<IModContext, T> factory, bool singleton) where T : class => this;
-            public IDependencyInjectionContainer Register<T>(T singletonInstance) where T : class => this;
-            public IDependencyInjectionContainer Register(Type type, Delegate factory) => this;
-            public IDependencyInjectionContainer Register(Type type, Delegate factory, bool singleton) => this;
-            public IDependencyInjectionContainer Register(Type type, object instance) => this;
-            public T Resolve<T>() where T : class => null;
-            public void Clear() { }
+            protected override IModContext Context => this;
         }
         #endregion
 
