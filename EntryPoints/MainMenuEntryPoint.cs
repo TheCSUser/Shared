@@ -1,7 +1,6 @@
 ﻿using ColossalFramework;
 using com.github.TheCSUser.Shared.Common;
 using com.github.TheCSUser.Shared.Containers;
-using ICities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,8 +10,34 @@ namespace com.github.TheCSUser.Shared.EntryPoints
 {
     internal class MainMenuEntryPoint : WithContext, IScriptContainer, IDisposableEx, IManagedLifecycle
     {
-        private readonly Cached<ILoading> _loadingManager = new Cached<ILoading>(() => Singleton<SimulationManager>.exists ? Singleton<SimulationManager>.instance.m_ManagersWrapper.loading : null);
-        protected ApplicationMode CurrentMode => _loadingManager.Value is null ? ApplicationMode.MainMenu : _loadingManager.Value.currentMode.ToApplicationMode();
+        protected ApplicationMode CurrentMode
+        {
+            get
+            {
+                if (!Singleton<LoadingManager>.exists
+                    || !Singleton<ToolManager>.exists
+                    || Singleton<ToolManager>.instance.m_properties is null)
+                    return ApplicationMode.MainMenu;
+                try
+                {
+                    return Singleton<LoadingManager>
+                        .instance
+                        .m_LoadingWrapper
+                        .currentMode
+                        .ToApplicationMode();
+                }
+#if DEV
+                catch (Exception e)
+                {
+                    Log.Error($"{GetType().Name}.{nameof(CurrentMode)}.Get failed", e);
+#else
+                catch
+                {
+#endif
+                    return ApplicationMode.MainMenu;
+                }
+            }
+        }
 
         public bool IsEnabled { get; private set; }
 
