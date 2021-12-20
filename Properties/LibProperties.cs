@@ -5,8 +5,8 @@ namespace com.github.TheCSUser.Shared.Properties
     internal static class LibProperties
     {
         public const string HarmonyId = "com.github.TheCSUser.Shared";
-        public const string Version = "1.2.3.0";
-        public const int VersionInteger = 6;
+        public const string Version = "1.2.5.0";
+        public const int VersionInteger = 7;
         public const string Name = "TheCSUser Shared Library";
         public const string ShortName = "Shared";
 #if DEV
