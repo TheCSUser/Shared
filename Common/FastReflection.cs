@@ -13,7 +13,7 @@ namespace com.github.TheCSUser.Shared.Common
         public static T GetStaticField<T>(this Type type, string fieldName) => FastReflection.GetOrCompileStaticFieldGetter<T>(type, fieldName)();
     }
 
-    internal static class FastReflection
+    public static class FastReflection
     {
         private static readonly Dictionary<Type, Dictionary<string, Delegate>> _staticFieldGetters = new Dictionary<Type, Dictionary<string, Delegate>>();
 
@@ -52,7 +52,7 @@ namespace com.github.TheCSUser.Shared.Common
         }
     }
 
-    internal static class FastReflection<T>
+    public static class FastReflection<T>
     {
         private static readonly Dictionary<string, Func<object, object>> _fieldGetters = new Dictionary<string, Func<object, object>>();
         public static Func<object, object> GetOrCompileFieldGetter(string fieldName)

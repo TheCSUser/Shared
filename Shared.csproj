@@ -76,6 +76,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Checks\AssetCheck.cs" />
+    <Compile Include="Checks\DLCCheck.cs" />
+    <Compile Include="Checks\IDLCCheck.cs" />
+    <Compile Include="Checks\IPluginCheck.cs" />
+    <Compile Include="Checks\ModCheck.cs" />
+    <Compile Include="Checks\PluginCheck.cs" />
     <Compile Include="Common\ApplicationMode.cs" />
     <Compile Include="Common\PluginHelperProxy.cs" />
     <Compile Include="Common\ReflectionExtensions.cs" />
